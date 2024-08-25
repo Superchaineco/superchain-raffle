@@ -77,7 +77,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _superchainRafflePointsPerTicket,
         ISuperchainModule _superchainModule,
         uint _fee
-    ) Ownable(_beneficiary) {
+    ) Ownable(msg.sender) {
         _setWinningLogic(
             _numberOfWinners,
             _superchainRafflePoints,
@@ -905,6 +905,10 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             }
         }
     }
+
+
+
+
 
     receive() external payable {}
 }

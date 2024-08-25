@@ -24,7 +24,7 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
     constructor(
         address _superchainRaffle,
         address _beneficiary
-    ) ERC20("superchainRaffle Points", "zkPTS") Ownable(_beneficiary) {
+    ) ERC20("superchainRaffle Points", "zkPTS") Ownable(msg.sender) {
         _setSuperchainRaffle(_superchainRaffle);
         _setBeneficiary(_beneficiary);
     }

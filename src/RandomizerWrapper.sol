@@ -30,7 +30,7 @@ contract RandomizerWrapper is
         address _superchainRaffle,
         address _beneficiary,
         address operator
-    ) Ownable(_beneficiary) {
+    ) Ownable(msg.sender) {
         _setSuperchainRaffle(_superchainRaffle);
         _setBeneficiary(_beneficiary);
         _operatorAddr = operator;
@@ -103,7 +103,7 @@ contract RandomizerWrapper is
         uint256 requestId,
         bytes memory data
     ) internal override {
-        uint256 _round = abi.decode(data, ( uint256 ));
+        uint256 _round = abi.decode(data, (uint256));
         require(roundToRequestId[_round] == requestId, "Invalid requestId");
         randomizerCallback(_round, bytes32(randomness));
     }
