@@ -7,7 +7,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISuperchainRafflePoints} from "./interfaces/ISuperchainRafflePoints.sol";
 import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
-// import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
+import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
 
 contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     address public beneficiary;
@@ -77,7 +77,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _superchainRafflePointsPerTicket,
         ISuperchainModule _superchainModule,
         uint _fee
-    ) {
+    ) Ownable(_beneficiary) {
         _setWinningLogic(
             _numberOfWinners,
             _superchainRafflePoints,
@@ -146,7 +146,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _numberOfTickets
     ) external payable validEthAmount(_numberOfTickets) whenNotPaused {
         if (
-            superchainModule.superChainAccount[msg.sender].smartAccount ==
+            superchainModule.superChainAccount(msg.sender).smartAccount ==
             address(0)
         ) {
             revert SuperchainRaffle__SenderIsNotSCSA();
@@ -483,7 +483,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         _setMaxAmountTicketsPerRound(_amountTickets);
     }
 
-
     function setBeneficiary(address _beneficiary) external onlyOwner {
         _setBeneficiary(_beneficiary);
     }
@@ -710,12 +709,13 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         _transferEth(_to, _amountETH);
     }
 
-    function _mintSuperchainRafflePoints(address _to, uint _amountZKPoints) internal {
+    function _mintSuperchainRafflePoints(
+        address _to,
+        uint _amountZKPoints
+    ) internal {
         try
-            ISuperchainRafflePoints(superchainRafflePoints).mintSuperchainRafflePoints(
-                _to,
-                _amountZKPoints
-            )
+            ISuperchainRafflePoints(superchainRafflePoints)
+                .mintSuperchainRafflePoints(_to, _amountZKPoints)
         returns (bool success) {
             require(success, "SuperchainRaffle Points minted");
         } catch {
@@ -802,7 +802,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function _roundsSinceStart() internal view returns (uint256) {
-        if (block.timestamp < startTime) revert SuperchainRaffle__SuperchainRaffleNotStartedYet();
+        if (block.timestamp < startTime)
+            revert SuperchainRaffle__SuperchainRaffleNotStartedYet();
         return ((block.timestamp - startTime) / 1 days) + 1;
     }
 
@@ -818,8 +819,9 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         superchainRafflePoints = _newSuperchainRafflePoints;
     }
 
-    function _setSuperchainModule(address _newSuperchainModule) internal {
-        if (_newSuperchainModule == address(0)) revert InvalidAddressInput();
+    function _setSuperchainModule(
+        ISuperchainModule _newSuperchainModule
+    ) internal {
         superchainModule = _newSuperchainModule;
     }
 

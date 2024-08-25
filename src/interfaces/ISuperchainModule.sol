@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-
 struct NounMetadata {
     uint48 background;
     uint48 body;
@@ -9,7 +8,6 @@ struct NounMetadata {
     uint48 head;
     uint48 glasses;
 }
-
 
 interface ISuperchainModule {
     // Errors
@@ -41,11 +39,20 @@ interface ISuperchainModule {
         string superChainId
     );
 
-    event PointsIncremented(address indexed recipient, uint256 points, bool levelUp);
+    event PointsIncremented(
+        address indexed recipient,
+        uint256 points,
+        bool levelUp
+    );
 
     event TierTresholdAdded(uint256 treshold);
 
     // Functions
+
+    function superChainAccount(
+        address _safe
+    ) external view returns (Account memory);
+
     function addOwnerWithThreshold(address _safe, address _newOwner) external;
 
     function removePopulateRequest(address _safe, address user) external;
@@ -59,9 +66,15 @@ interface ISuperchainModule {
 
     function populateAddOwner(address _safe, address _newOwner) external;
 
-    function incrementSuperChainPoints(uint256 _points, address recipient) external returns (bool levelUp);
+    function incrementSuperChainPoints(
+        uint256 _points,
+        address recipient
+    ) external returns (bool levelUp);
 
-    function simulateIncrementSuperChainPoints(uint256 _points, address recipient) external view returns (bool levelUp);
+    function simulateIncrementSuperChainPoints(
+        uint256 _points,
+        address recipient
+    ) external view returns (bool levelUp);
 
     function _changeResolver(address resolver) external;
 
@@ -69,9 +82,13 @@ interface ISuperchainModule {
 
     function getNextLevelPoints(address _safe) external view returns (uint256);
 
-    function getSuperChainAccount(address _safe) external view returns (Account memory);
+    function getSuperChainAccount(
+        address _safe
+    ) external view returns (Account memory);
 
-    function getUserSuperChainAccount(address _owner) external view returns (Account memory);
+    function getUserSuperChainAccount(
+        address _owner
+    ) external view returns (Account memory);
 
     // Structs
     struct AddOwnerRequest {
@@ -87,4 +104,3 @@ interface ISuperchainModule {
         NounMetadata noun;
     }
 }
-
