@@ -10,6 +10,11 @@ interface ISuperchainRaffle {
         uint256[] payoutPercentage;
     }
 
+    struct RoundPrize{
+        uint256 OpAmount;
+        uint256 EthAmount;
+    }
+
     // --------------------------
     // Events
     // --------------------------

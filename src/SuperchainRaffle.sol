@@ -14,8 +14,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     IERC20 public opToken;
     // Track rounds
     uint256 public startTime;
-    // Single ticket price
-    uint256 public ticketPrice = 0.002 ether;
     // SafeModule for SuperchainSmartAccount
     ISuperchainModule public superchainModule;
     // Contract with which wrappes the Randomizer
@@ -30,6 +28,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     uint256 public maxAmountTickets = 250;
     // Maximum number of play tickets per address, per round
     uint256 public maxTicketsPerWallet = 10;
+    mapping(uint256 => RoundPrize) public roundPrizes;
     // Round => ticket number => Address;
     mapping(uint256 => mapping(uint256 => address))
         public ticketPerAddressPerRound;
@@ -47,30 +46,17 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     // Modifier
     // --------------------------
 
-    // modifier validEthAmount(uint256 _numberOfTickets) {
-    //     if (_numberOfTickets * ticketPrice > msg.value)
-    //         revert SuperchainRaffle__NotEnoughEtherSend();
-    //     _;
-    // }
-
     constructor(
         uint256[] memory _numberOfWinners,
-        uint256[][] memory _superchainRafflePoints,
         uint256[][] memory _payoutPercentage,
         address _beneficiary,
         address _opToken,
-        uint256 _superchainRafflePointsPerTicket,
         ISuperchainModule _superchainModule,
         uint256 _fee
     ) Ownable(msg.sender) {
-        _setWinningLogic(
-            _numberOfWinners,
-            _superchainRafflePoints,
-            _payoutPercentage
-        );
+        _setWinningLogic(_numberOfWinners, _payoutPercentage);
         _setBeneficiary(_beneficiary);
         opToken = IERC20(_opToken);
-        _setSuperchainRafflePointsPerTicket(_superchainRafflePointsPerTicket);
         _setProtocolFee(_fee);
         _setSuperchainModule(_superchainModule);
     }
@@ -209,152 +195,125 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         }
     }
 
-    /// @notice Calculates and returns the total Ether claimed by a user within a
-    /// specified range of rounds.
-    /// @dev The function iterates through the rounds and sums up all Ether amounts
-    /// claimed, excluding the cases where
-    /// ethWon is 0 (not claimed) or 1 (claimed but nothing won). Reverts if the specified
-    /// end round is not valid.
-    /// @param _user The address of the user for whom the total claimed Ether will be calculated.
-    /// @param _startRound The round from which to start calculating the total claimed Ether.
-    /// @param _endRound The round until which to calculate the total claimed Ether.
-    /// @return ethAmountClaimed Total amount of Ether claimed by the user within the specified
-    /// range of rounds.
-    function totalEthClaimed(
-        address _user,
-        uint256 _startRound,
-        uint256 _endRound
-    ) external view returns (uint256 ethAmountClaimed) {
-        // Check that end round is within rounds played
-        if (_endRound > roundsSinceStart() - 1)
-            revert SuperchainRaffle__InvalidEndRound();
-        // Loop through each round in range and add all eth claimed within rounds excluding 0, i.e. not claimed
-        // and 1, i.e. claimed but nothing won
-        for (_startRound; _startRound <= _endRound; _startRound++) {
-            uint256 ethWon = winningClaimed[_startRound][_user];
-            if (ethWon != 0 && ethWon != 1) ethAmountClaimed += ethWon;
-        }
-    }
+    // /// @notice Retrieves detailed winning information for a specified round of the game.
+    // /// @dev This function calls `getWinningTicketsByRound` from an external contract identified
+    // /// by `randomizerWrapper`.
+    // /// It subsequently computes various winning metrics based on the retrieved winning tickets and the internal state
+    // /// managed by this contract, including ETH and ZK-Points awarded per ticket. The computed metrics are returned in
+    // /// multiple arrays, each array's indices correspond to a particular winning ticket.
+    // /// @param _round The round for which the winning information is requested.
+    // /// @return _winningTickets An array of ticket numbers that won in the specified round.
+    // /// @return _winningAddresses An array of addresses that own the winning tickets.
+    // /// @return _ethPerTicket An array of ETH amounts awarded per winning ticket.
+    // /// @return _superchainRafflePointsPerTicket An array of ZK-Points awarded per winning ticket, considering all factors including any multipliers.
+    // function getWinningTicketsAndAddresses(
+    //     uint256 _round
+    // )
+    //     external
+    //     view
+    //     returns (
+    //         uint256[] memory _winningTickets,
+    //         address[] memory _winningAddresses,
+    //         uint256[] memory _ethPerTicket,
+    //         uint256[] memory _superchainRafflePointsPerTicket
+    //     )
+    // {
+    //     _winningTickets = IRandomizerWrapper(randomizerWrapper)
+    //         .getWinningTicketsByRound(_round);
+    //     // Number of winning tickets
+    //     uint256 nOfWinningTickets = _winningTickets.length;
+    //     _winningAddresses = new address[](nOfWinningTickets);
+    //     _ethPerTicket = new uint256[](nOfWinningTickets);
+    //     _superchainRafflePointsPerTicket = new uint256[](nOfWinningTickets);
+    //     // Get winning logic for number of winning tickets
+    //     WinningLogic memory logic = winningLogic[nOfWinningTickets];
+    //     for (uint256 i = 0; i < nOfWinningTickets; ++i) {
+    //         // Get winning address for ticket on index 'i'
+    //         address winningAddress = _getTicketBuyerAddress(
+    //             _winningTickets[i],
+    //             ticketsSoldPerRound[_round],
+    //             _round
+    //         );
+    //         // Store winning address in return array
+    //         _winningAddresses[i] = winningAddress;
+    //         // Get superchainRafflepoints won from winning ticket.  Amount winning points corresponds
+    //         /// with index in array and ticket index i.e. if your ticket is number 2 in
+    //         /// array, then you get reward of SuperchainPoints
+    //         uint256 superchainRafflePointsFromWinningTicket = logic
+    //             .superchainRafflePoints[i];
+    //         // Calculate and add amount of ETH won in the following manner:
+    //         // 1. Percentage won for this ticket, of total ETH of round corresponds with
+    //         // index in array, i.e. if ticket number 1 wins 75%, then index 0 in array has
+    //         // 75% in BPS stored
+    //         // 2. Sent percentage plus round to calculate total amount of ETH won
+    //         _ethPerTicket[i] = _getETHAmount(logic.payoutPercentage[i], _round);
+    //         // Calculate superchainRafflePoints user get for each ticket bought in this round + superchainRafflePoints from winning, if applicable (by default 0)
+    //         uint256 totalSuperchainRafflePointsForRoundForTicket = (ticketsPerWallet[
+    //                 _round
+    //             ][winningAddress] * superchainRafflePointsPerTicket) +
+    //                 superchainRafflePointsFromWinningTicket;
+    //         // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
+    //         // amount which gets stored in return array
+    //         _superchainRafflePointsPerTicket[
+    //             i
+    //         ] = totalSuperchainRafflePointsForRoundForTicket;
+    //     }
+    // }
 
-    /// @notice Retrieves detailed winning information for a specified round of the game.
-    /// @dev This function calls `getWinningTicketsByRound` from an external contract identified
-    /// by `randomizerWrapper`.
-    /// It subsequently computes various winning metrics based on the retrieved winning tickets and the internal state
-    /// managed by this contract, including ETH and ZK-Points awarded per ticket. The computed metrics are returned in
-    /// multiple arrays, each array's indices correspond to a particular winning ticket.
-    /// @param _round The round for which the winning information is requested.
-    /// @return _winningTickets An array of ticket numbers that won in the specified round.
-    /// @return _winningAddresses An array of addresses that own the winning tickets.
-    /// @return _ethPerTicket An array of ETH amounts awarded per winning ticket.
-    /// @return _superchainRafflePointsPerTicket An array of ZK-Points awarded per winning ticket, considering all factors including any multipliers.
-    function getWinningTicketsAndAddresses(
-        uint256 _round
-    )
-        external
-        view
-        returns (
-            uint256[] memory _winningTickets,
-            address[] memory _winningAddresses,
-            uint256[] memory _ethPerTicket,
-            uint256[] memory _superchainRafflePointsPerTicket
-        )
-    {
-        _winningTickets = IRandomizerWrapper(randomizerWrapper)
-            .getWinningTicketsByRound(_round);
-        // Number of winning tickets
-        uint256 nOfWinningTickets = _winningTickets.length;
-        _winningAddresses = new address[](nOfWinningTickets);
-        _ethPerTicket = new uint256[](nOfWinningTickets);
-        _superchainRafflePointsPerTicket = new uint256[](nOfWinningTickets);
-        // Get winning logic for number of winning tickets
-        WinningLogic memory logic = winningLogic[nOfWinningTickets];
-        for (uint256 i = 0; i < nOfWinningTickets; ++i) {
-            // Get winning address for ticket on index 'i'
-            address winningAddress = _getTicketBuyerAddress(
-                _winningTickets[i],
-                ticketsSoldPerRound[_round],
-                _round
-            );
-            // Store winning address in return array
-            _winningAddresses[i] = winningAddress;
-            // Get superchainRafflepoints won from winning ticket.  Amount winning points corresponds
-            /// with index in array and ticket index i.e. if your ticket is number 2 in
-            /// array, then you get reward of SuperchainPoints
-            uint256 superchainRafflePointsFromWinningTicket = logic
-                .superchainRafflePoints[i];
-            // Calculate and add amount of ETH won in the following manner:
-            // 1. Percentage won for this ticket, of total ETH of round corresponds with
-            // index in array, i.e. if ticket number 1 wins 75%, then index 0 in array has
-            // 75% in BPS stored
-            // 2. Sent percentage plus round to calculate total amount of ETH won
-            _ethPerTicket[i] = _getETHAmount(logic.payoutPercentage[i], _round);
-            // Calculate superchainRafflePoints user get for each ticket bought in this round + superchainRafflePoints from winning, if applicable (by default 0)
-            uint256 totalSuperchainRafflePointsForRoundForTicket = (ticketsPerWallet[
-                    _round
-                ][winningAddress] * superchainRafflePointsPerTicket) +
-                    superchainRafflePointsFromWinningTicket;
-            // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
-            // amount which gets stored in return array
-            _superchainRafflePointsPerTicket[
-                i
-            ] = totalSuperchainRafflePointsForRoundForTicket;
-        }
-    }
+    // /// @notice Retrieves the ticket numbers a user has for the current round.
+    // /// @dev This function loops backward through the tickets sold in the round to compile the ticket numbers for the given user.
+    // /// If the user hasn't bought any tickets for the round, an empty array is returned.
+    // /// @param _user The address of the user whose ticket numbers are to be retrieved.
+    // /// @return ticketsBought An array of ticket numbers the user has for the current round.
+    // function getUserTicketNumbersOfCurrentRound(
+    //     address _user
+    // ) external view returns (uint256[] memory ticketsBought) {
+    //     // Get current round
+    //     uint256 round = _roundsSinceStart();
+    //     // Get number of tickets bought by user for given round
+    //     uint256 numberOfTicketsBought = ticketsPerWallet[round][_user];
+    //     // Initiate dynamic array equal to number of tickets bought
+    //     ticketsBought = new uint256[](numberOfTicketsBought);
 
-    /// @notice Retrieves the ticket numbers a user has for the current round.
-    /// @dev This function loops backward through the tickets sold in the round to compile the ticket numbers for the given user.
-    /// If the user hasn't bought any tickets for the round, an empty array is returned.
-    /// @param _user The address of the user whose ticket numbers are to be retrieved.
-    /// @return ticketsBought An array of ticket numbers the user has for the current round.
-    function getUserTicketNumbersOfCurrentRound(
-        address _user
-    ) external view returns (uint256[] memory ticketsBought) {
-        // Get current round
-        uint256 round = _roundsSinceStart();
-        // Get number of tickets bought by user for given round
-        uint256 numberOfTicketsBought = ticketsPerWallet[round][_user];
-        // Initiate dynamic array equal to number of tickets bought
-        ticketsBought = new uint256[](numberOfTicketsBought);
+    //     // If no tickets has been bought, return empty values
+    //     if (numberOfTicketsBought == 0) return ticketsBought;
 
-        // If no tickets has been bought, return empty values
-        if (numberOfTicketsBought == 0) return ticketsBought;
+    //     // Get total tickets sold for round
+    //     uint256 nOfTicketsSold = ticketsSoldPerRound[round];
+    //     // Return array index
+    //     uint256 ticketIndex = 0;
 
-        // Get total tickets sold for round
-        uint256 nOfTicketsSold = ticketsSoldPerRound[round];
-        // Return array index
-        uint256 ticketIndex = 0;
+    //     // Loop through all tickets sold backward until the first ticket, number 1
+    //     while (nOfTicketsSold > 0) {
+    //         // If ticket number is mapped to user address
+    //         if (ticketPerAddressPerRound[round][nOfTicketsSold] == _user) {
+    //             // Store the ticket number
+    //             ticketsBought[ticketIndex] = nOfTicketsSold;
+    //             ticketIndex++;
+    //             nOfTicketsSold--;
 
-        // Loop through all tickets sold backward until the first ticket, number 1
-        while (nOfTicketsSold > 0) {
-            // If ticket number is mapped to user address
-            if (ticketPerAddressPerRound[round][nOfTicketsSold] == _user) {
-                // Store the ticket number
-                ticketsBought[ticketIndex] = nOfTicketsSold;
-                ticketIndex++;
-                nOfTicketsSold--;
+    //             // Keep adding tickets mapped to address(0) until all tickets have been checked, or
+    //             // ticket is mapped to different address
+    //             while (
+    //                 nOfTicketsSold > 0 &&
+    //                 ticketPerAddressPerRound[round][nOfTicketsSold] ==
+    //                 address(0)
+    //             ) {
+    //                 ticketsBought[ticketIndex] = nOfTicketsSold;
+    //                 ticketIndex++;
+    //                 nOfTicketsSold--;
+    //             }
+    //         } else {
+    //             nOfTicketsSold--;
+    //         }
+    //         // Break out loop when all tickets are collected before reaching ticket number 1
+    //         if (ticketIndex == numberOfTicketsBought) {
+    //             break;
+    //         }
+    //     }
 
-                // Keep adding tickets mapped to address(0) until all tickets have been checked, or
-                // ticket is mapped to different address
-                while (
-                    nOfTicketsSold > 0 &&
-                    ticketPerAddressPerRound[round][nOfTicketsSold] ==
-                    address(0)
-                ) {
-                    ticketsBought[ticketIndex] = nOfTicketsSold;
-                    ticketIndex++;
-                    nOfTicketsSold--;
-                }
-            } else {
-                nOfTicketsSold--;
-            }
-            // Break out loop when all tickets are collected before reaching ticket number 1
-            if (ticketIndex == numberOfTicketsBought) {
-                break;
-            }
-        }
-
-        return ticketsBought;
-    }
+    //     return ticketsBought;
+    // }
 
     /**
      * @dev Determines the winning tickets for previous play rounds.
@@ -396,12 +355,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                 randomizerFeePaidForRound[round] = randomizerFee == 0
                     ? 1
                     : randomizerFee; // Set fee to 1 if randomizerFee = 0
-                if (protocolFee != 0) {
-                    // Total protocolFee collected for round * protocolFee / BPS to get amount
-                    uint256 totalFee = ((ticketsSold * ticketPrice) *
-                        protocolFee) / BPS;
-                    _transferEth(beneficiary, totalFee);
-                }
+                // if (protocolFee != 0) {
+                //     // Total protocolFee collected for round * protocolFee / BPS to get amount
+                //     uint256 totalFee = ((ticketsSold * ticketPrice) *
+                //         protocolFee) / BPS;
+                //     _transferEth(beneficiary, totalFee);
+                // }
             } else break;
         }
     }
@@ -418,20 +377,25 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         }
     }
 
+    function fundRaffle(
+        uint256 rounds,
+        uint256 EthAmount,
+        uint256 OpAmount
+    ) external whenNotPaused {
+        _transferEth(address(this), EthAmount);
+        _transferOP(address(this), OpAmount);
+        uint256 currentRound = _roundsSinceStart();
+        for (uint256 i = currentRound; i < currentRound + rounds; i++) {
+            roundPrizes[i].EthAmount += EthAmount / rounds;
+            roundPrizes[i].OpAmount += OpAmount / rounds;
+        }
+    }
+
     // --------------------------
     // Restricted Functions
     // --------------------------
 
     // To Do: Create restricted function to update winning logic
-
-    /**
-     * @dev Set address of the SuperchainRafflePoints contract
-     */
-    function setSuperchainRafflePlayPoints(
-        address _newSuperchainRafflePlayPoints
-    ) external onlyOwner {
-        _setSuperchainRafflePoints(_newSuperchainRafflePlayPoints);
-    }
 
     function setMaxAmountTicketsPerRound(
         uint256 _amountTickets
@@ -454,10 +418,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         startTime = _timeStamp;
     }
 
-    // function setRandomizerContract(address _randomizer) external onlyOwner {
-    //     _setRandomizerContract(_randomizer);
-    // }
-
     function pause() external onlyOwner {
         _pause();
     }
@@ -473,18 +433,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         if (!sent) revert SuperchainRaffle__FailedToSentEther();
     }
 
-    function setSuperchainRafflePointsPerTicket(
-        uint256 _points
-    ) external onlyOwner {
-        _setSuperchainRafflePointsPerTicket(_points);
-    }
-
     function setProtocolFee(uint256 _fee) external onlyOwner {
         _setProtocolFee(_fee);
-    }
-
-    function setTicketPrice(uint256 _price) external onlyOwner {
-        _setTicketPrice(_price);
     }
 
     function setMaxTicketsPerWallet(uint256 _amount) external onlyOwner {
@@ -506,12 +456,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
      * winnings based on the winning logic. The total claimable ETH and SuperchainPoints are aggregated and returned.
      *
      * @param user The address of the user for whom the claimable amounts are being calculated.
-     * @return amountEth The total amount of ETH that the user can claim.
-     * @return amountSuperchainPoints The total amount of SuperchainPoints that the user can claim.
+     * @return amountETH The total amount of ETH that the user can claim.
+     * @return amountOP The total amount of SuperchainPoints that the user can claim.
      */
     function _claimableAmounts(
         address user
-    ) internal returns (uint256 amountEth, uint256 amountSuperchainPoints) {
+    ) internal returns (uint256 amountETH, uint256 amountOP) {
         // Get most recent round, excluding this round
         uint256 round = (_roundsSinceStart() - 1);
         // Loop through rounds backwards
@@ -552,23 +502,19 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                         // index in array, i.e. if ticket number 1 wins 75%, then index 0 in array has
                         // 75% in BPS stored
                         // 2. Sent percentage plus round to calculate total amount of ETH won
-                        amountEth += _getETHAmount(
+                        amountETH += _getETHAmount(
+                            logic.payoutPercentage[i],
+                            round
+                        );
+                        amountOP += _getOPAmount(
                             logic.payoutPercentage[i],
                             round
                         );
                     }
                 }
-                // Calculate superchainRafflePoints user get for each ticket bought in this round + superchainRafflePoints from winning, if applicable (by default 0)
-                uint256 totalSuperchainRafflePointsForRound = (ticketsPerWallet[
-                    round
-                ][user] * superchainRafflePointsPerTicket) +
-                    superchainRafflePointsFromWinningTicket;
-                // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
-                // amount which gets transferred
-                amountSuperchainPoints += totalSuperchainRafflePointsForRound;
                 // Set the amount eth won which is used in the UI. The number 1. here represents if the round has been claimed, but no ETH
                 // has been won
-                winningClaimed[round][user] = amountEth != 0 ? amountEth : 1;
+                winningClaimed[round][user] = amountETH != 0 ? amountETH : 1;
             }
         }
     }
@@ -582,12 +528,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
      * winnings based on the winning logic. The total claimable ETH and SuperchainPoints are aggregated and returned.
      *
      * @param user The address of the user for whom the claimable amounts are being calculated.
-     * @return amountEth The total amount of ETH that the user can claim.
-     * @return amountSuperchainPoints The total amount of SuperchainPoints that the user can claim.
+     * @return amountETH The total amount of ETH that the user can claim.
+     * @return amountOP The total amount of SuperchainPoints that the user can claim.
      */
     function _getClaimableAmounts(
         address user
-    ) internal view returns (uint256 amountEth, uint256 amountOP) {
+    ) internal view returns (uint256 amountETH, uint256 amountOP) {
         // Get most recent round, excluding this round
         uint256 round = (_roundsSinceStart() - 1);
         // Loop through rounds backwards
@@ -621,7 +567,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                         // index in array, i.e. if ticket number 1 wins 75%, then index 0 in array has
                         // 75% in BPS stored
                         // 2. Sent percentage plus round to calculate total amount of ETH won
-                        amountEth += _getETHAmount(
+                        amountETH += _getETHAmount(
                             logic.payoutPercentage[i],
                             round
                         );
@@ -631,14 +577,13 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                         );
                     }
                 }
-                winningClaimed[round][user] = amountEth != 0 ? amountEth : 1;
             }
         }
     }
 
     function _transferWinnings(
         address _to,
-        uint256 _amountSup_amountOPerchainPoints,
+        uint256 _amountOP,
         uint256 _amountETH
     ) internal {
         _transferOP(_to, _amountOP);
@@ -646,7 +591,14 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function _transferOP(address _to, uint256 _amountOP) internal {
-        require(opToken.transfer(_to, _amountOP), "OP transfer failed");
+        if (_to == address(this)) {
+            require(
+                opToken.transferFrom(msg.sender, _to, _amountOP),
+                "OP transfer failed"
+            );
+        } else {
+            require(opToken.transfer(_to, _amountOP), "OP transfer failed");
+        }
     }
 
     function _transferEth(address _to, uint256 _amountETH) internal {
@@ -658,8 +610,11 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        // Total ETH amoutn is calculated as: Number of tickets sold for given round * ticket price
-        uint256 totalEthCollected = ticketsSoldPerRound[_round] * ticketPrice;
+        uint256 totalEthCollected = roundPrizes[_round].EthAmount;
+        if (totalEthCollected == 0) {
+            return 0;
+        }
+
         // Calculte protocol fee amount in ETH if fee percentage > 0. Amount calculate as percentage
         // of total ETH collected for round.
         uint256 protocolFeeAmount = protocolFee == 0
@@ -685,8 +640,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        uint256 totalOPCollected = opToken.balanceOf(address(this));
-        return ((totalOPCollected * _percentage) / BPS);
+        uint256 totalOPCollected = roundPrizes[_round].OpAmount;
+        if (totalOPCollected == 0) {
+            return 0;
+        }
+
+        return ((totalOPCollected * _percentage) / BPS) - 1;
     }
 
     function _getTicketBuyerAddress(
@@ -706,19 +665,11 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function _roundsSinceStart() internal view returns (uint256) {
         if (block.timestamp < startTime)
             revert SuperchainRaffle__SuperchainRaffleNotStartedYet();
-        return ((block.timestamp - startTime) / 1 days) + 1;
+        return ((block.timestamp - startTime) / 1 weeks) + 1;
     }
 
     function _setBeneficiary(address _beneficiary) internal {
         beneficiary = _beneficiary;
-    }
-
-    function _setSuperchainRafflePoints(
-        address _newSuperchainRafflePoints
-    ) internal {
-        if (_newSuperchainRafflePoints == address(0))
-            revert InvalidAddressInput();
-        superchainRafflePoints = _newSuperchainRafflePoints;
     }
 
     function _setSuperchainModule(
@@ -736,18 +687,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         mainnetRandomizedWrapper = _mainnetWrapper;
     }
 
-    // function _setRandomizerContract(address _randomizer) internal {
-    //     IRandomizerWrapper(randomizerWrapper).setRandomizerContract(
-    //         _randomizer
-    //     );
-    // }
-
     function _setNewStartTime(uint256 _startTime) internal {
         startTime = _startTime;
-    }
-
-    function _setSuperchainRafflePointsPerTicket(uint256 _points) internal {
-        superchainRafflePointsPerTicket = _points;
     }
 
     function _setMaxAmountTicketsPerRound(uint256 _maxAmount) internal {
@@ -758,39 +699,26 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         protocolFee = _fee;
     }
 
-    function _setTicketPrice(uint256 _price) internal {
-        ticketPrice = _price;
-    }
-
     function _setMaxTicketsPerWallet(uint256 _amount) internal {
         maxTicketsPerWallet = _amount;
     }
 
     function _setWinningLogic(
         uint256[] memory _numberOfWinners,
-        uint256[][] memory _superchainRafflePoints,
         uint256[][] memory _payoutPercentage
     ) internal {
         uint256 arrayLength = _numberOfWinners.length;
         for (uint256 i; i < arrayLength; ++i) {
-            WinningLogic storage logic = winningLogic[
-                uint256(_numberOfWinners[i])
-            ];
-            // If values have already been stored, i.e. this function is called for an updated
-            // then delete values first
+            WinningLogic storage logic = winningLogic[_numberOfWinners[i]];
             if (
                 winningLogic[uint256(_numberOfWinners[i])]
-                    .superchainRafflePoints
+                    .payoutPercentage
                     .length != 0
             ) {
-                delete logic.superchainRafflePoints;
                 delete logic.payoutPercentage;
             }
-            uint256 innerArrayLength = _superchainRafflePoints[i].length;
+            uint256 innerArrayLength = _payoutPercentage[i].length;
             for (uint256 j; j < innerArrayLength; ++j) {
-                logic.superchainRafflePoints.push(
-                    uint256(_superchainRafflePoints[i][j])
-                );
                 logic.payoutPercentage.push(uint256(_payoutPercentage[i][j]));
             }
         }

@@ -8,9 +8,11 @@ contract SuperchainRaffleFactory is Ownable  {
     event SuperchainRaffleCreated(address superchainRaffle);
     ISuperchainModule private _superchainModule;
     SuperchainRaffle[] public raffles;
+    address private _opToken;
 
-    constructor(address superchainModule) Ownable(msg.sender) {
+    constructor(address superchainModule, address opToken) Ownable(msg.sender) {
         _superchainModule = ISuperchainModule(superchainModule);
+        _opToken = opToken;
     }
 
     /**
@@ -20,14 +22,13 @@ contract SuperchainRaffleFactory is Ownable  {
         uint[] memory _numberOfWinners,
         uint[][] memory _payoutPercentage,
         address _beneficiary,
-        uint256 _superchainRafflePointsPerTicket,
         uint _fee
     ) external onlyOwner {
         SuperchainRaffle raffle = new SuperchainRaffle(
             _numberOfWinners,
             _payoutPercentage,
             _beneficiary,
-            _superchainRafflePointsPerTicket,
+            _opToken,
             _superchainModule,
             _fee
         );
