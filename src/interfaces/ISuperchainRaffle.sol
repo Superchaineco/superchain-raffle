@@ -46,6 +46,7 @@ interface ISuperchainRaffle {
     error InvalidEtherAmount();
     error EthTransferFailed();
     error SuperchainRafflePointsTransferFailed();
+    error SuperchainRaffle__NotEnoughFreeTickets();
     error SuperchainRaffle__NotSponsoredRaffle();
     error SuperchainRaffle__NotEnoughEtherInContract();
     error SuperchainRaffle__FailedToSentEther();

@@ -109,6 +109,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         }
         // Get current round
         uint256 round = _roundsSinceStart();
+        uint256 ticketsRemaining = freeTicketsRemaining();
+
+        if (_numberOfTickets > ticketsRemaining) {
+            revert SuperchainRaffle__NotEnoughFreeTickets();
+        }
+
         // Check if max amount of tickets buyable per round is not reached
         if (ticketsSoldPerRound[round] + _numberOfTickets > maxAmountTickets)
             revert SuperchainRaffle__MaxNumberOfTicketsReached();
@@ -137,6 +143,20 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             _numberOfTickets,
             round
         );
+    }
+
+    function freeTicketsRemaining() public view returns (uint256) {
+        uint256 round = _roundsSinceStart();
+
+        uint256 userLevel = superchainModule
+            .getSuperChainAccount(msg.sender)
+            .level;
+        uint256 ticketsBought = ticketsPerWallet[round][user];
+        if (ticketsBought >= userLevel) {
+            return 0;
+        } else {
+            return maxFreeTickets - ticketsBought;
+        }
     }
 
     function claimFor(address user) external whenNotPaused {
