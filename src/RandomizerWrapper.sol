@@ -242,7 +242,6 @@ contract RandomizerWrapper is
         uint256 _numberOfTicketsSold
     ) internal pure returns (uint256) {
         if (_numberOfTicketsSold <= 10) return 1;
-        else if (_numberOfTicketsSold <= 100) return 5;
         else return 10;
     }
 

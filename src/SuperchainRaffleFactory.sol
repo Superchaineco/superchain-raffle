@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
-import {SuperchainRaffle, RaffleType} from "./SuperchainRaffle.sol";
+import {SuperchainRaffle } from "./SuperchainRaffle.sol";
 
 contract SuperchainRaffleFactory is Ownable  {
     event SuperchainRaffleCreated(address superchainRaffle);
@@ -18,24 +18,18 @@ contract SuperchainRaffleFactory is Ownable  {
      */
     function createSuperchainRaffle(
         uint[] memory _numberOfWinners,
-        uint[][] memory _superchainRafflePoints,
         uint[][] memory _payoutPercentage,
-        uint[] memory _multiplier,
         address _beneficiary,
         uint256 _superchainRafflePointsPerTicket,
-        uint _fee,
-        RaffleType _raffleType
+        uint _fee
     ) external onlyOwner {
         SuperchainRaffle raffle = new SuperchainRaffle(
             _numberOfWinners,
-            _superchainRafflePoints,
             _payoutPercentage,
-            _multiplier,
             _beneficiary,
             _superchainRafflePointsPerTicket,
             _superchainModule,
-            _fee,
-            _raffleType
+            _fee
         );
 
         raffle.transferOwnership(msg.sender);
