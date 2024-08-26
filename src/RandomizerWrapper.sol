@@ -192,15 +192,12 @@ contract RandomizerWrapper is
         _setBeneficiary(_beneficiary);
     }
 
-    function setRandomizerContract(
-        address _randomizer
-    ) external onlySuperchainRaffle {}
+  
 
     function setSuperchainRaffle(address _superchainRaffle) external onlyOwner {
         _setSuperchainRaffle(_superchainRaffle);
     }
 
-    function setVrfGas(uint _gas) external onlySuperchainRaffle {}
 
     // --------------------------
     // Internal
@@ -236,7 +233,7 @@ contract RandomizerWrapper is
     }
 
     /**
-     * @dev Number of random values needed in the ZK Play based on number of tickets sold
+     * @dev Number of random values needed in the SuperchainRaffle based on number of tickets sold
      * <= 10 = 1 winner
      * <= 100 = 5 winners
      * > 100 = 10 winners

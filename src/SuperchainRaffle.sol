@@ -9,6 +9,7 @@ import {ISuperchainRafflePoints} from "./interfaces/ISuperchainRafflePoints.sol"
 import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
 import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
 
+
 contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     address public beneficiary;
     // Basis points used for percentage calculation
@@ -910,5 +911,4 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
 
 
-    receive() external payable {}
 }
