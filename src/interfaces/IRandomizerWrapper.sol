@@ -10,7 +10,6 @@ interface IRandomizerWrapper {
         uint256 _numberOfTicketsSold
     ) external payable;
 
-    function setRandomizerContract(address _randomizer) external;
 
     function getWinningTicketsByRound(
         uint256 _round

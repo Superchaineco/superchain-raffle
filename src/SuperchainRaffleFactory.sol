@@ -1,21 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/access/Ownable.sol";
-import {ISuperchainRaffleFactory} from "./interfaces/ISuperchainRaffleFactory.sol";
 import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
-import {SuperchainRaffle} from "./SuperchainRaffle.sol";
+import {SuperchainRaffle, RaffleType} from "./SuperchainRaffle.sol";
 
-contract SuperchainRaffleFactory is Ownable, ISuperchainRaffleFactory {
-
-
-   ISuperchainModule private _superchainModule; 
+contract SuperchainRaffleFactory is Ownable  {
+    event SuperchainRaffleCreated(address superchainRaffle);
+    ISuperchainModule private _superchainModule;
     SuperchainRaffle[] public raffles;
-
 
     constructor(address superchainModule) Ownable(msg.sender) {
         _superchainModule = ISuperchainModule(superchainModule);
     }
-
 
     /**
      * @dev Create a new SuperchainRaffle contract
@@ -27,7 +23,8 @@ contract SuperchainRaffleFactory is Ownable, ISuperchainRaffleFactory {
         uint[] memory _multiplier,
         address _beneficiary,
         uint256 _superchainRafflePointsPerTicket,
-        uint _fee
+        uint _fee,
+        RaffleType _raffleType
     ) external onlyOwner {
         SuperchainRaffle raffle = new SuperchainRaffle(
             _numberOfWinners,
@@ -37,7 +34,8 @@ contract SuperchainRaffleFactory is Ownable, ISuperchainRaffleFactory {
             _beneficiary,
             _superchainRafflePointsPerTicket,
             _superchainModule,
-            _fee
+            _fee,
+            _raffleType
         );
 
         raffle.transferOwnership(msg.sender);
@@ -47,11 +45,9 @@ contract SuperchainRaffleFactory is Ownable, ISuperchainRaffleFactory {
         emit SuperchainRaffleCreated(address(raffle));
     }
 
-
     function setSuperchainModule(address superchainModule) external onlyOwner {
         _superchainModule = ISuperchainModule(superchainModule);
     }
-
 
     /**
      * @dev Get a SuperchainRaffle contract by index
