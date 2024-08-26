@@ -197,18 +197,18 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function claimFor(address user) external whenNotPaused {
-        (uint amountEth, uint amountZKPoints) = _claimableAmounts(user);
+        (uint amountEth, uint amountSuperchainPoints) = _claimableAmounts(user);
         if (amountEth > 0) {
-            _transferWinnings(msg.sender, amountZKPoints, amountEth);
+            _transferWinnings(msg.sender, amountSuperchainPoints, amountEth);
         }
     }
 
     function claim() external whenNotPaused {
-        (uint amountEth, uint amountZKPoints) = _claimableAmounts(msg.sender);
+        (uint amountEth, uint amountSuperchainPoints) = _claimableAmounts(msg.sender);
         if (amountEth > 0) {
-            _transferWinnings(msg.sender, amountZKPoints, amountEth);
+            _transferWinnings(msg.sender, amountSuperchainPoints, amountEth);
         }
-        emit Claim(msg.sender, amountEth, amountZKPoints);
+        emit Claim(msg.sender, amountEth, amountSuperchainPoints);
     }
 
     function getClaimableAmounts(
@@ -217,7 +217,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         return _getClaimableAmounts(user);
     }
 
-    function getZKPointsMultiplier(
+    function getSuperchainPointsMultiplier(
         address user
     ) public view whenNotPaused returns (uint256) {
         uint256 round = _roundsSinceStart() - 1; // Exclude current round
@@ -322,7 +322,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             _winningAddresses[i] = winningAddress;
             // Get superchainRafflepoints won from winning ticket.  Amount winning points corresponds
             /// with index in array and ticket index i.e. if your ticket is number 2 in
-            /// array, then you get reward of ZKPoints
+            /// array, then you get reward of SuperchainPoints
             uint superchainRafflePointsFromWinningTicket = logic
                 .superchainRafflePoints[i];
             // Calculate and add amount of ETH won in the following manner:
@@ -338,7 +338,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     superchainRafflePointsFromWinningTicket;
             // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
             // amount which gets stored in return array
-            _superchainRafflePointsPerTicket[i] = _getMultipliedZKPoints(
+            _superchainRafflePointsPerTicket[i] = _getMultipliedSuperchainPoints(
                 totalSuperchainRafflePointsForRoundForTicket,
                 multiplierPerRound[_round][winningAddress]
             );
@@ -544,22 +544,22 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     // --------------------------
 
     /**
-     * @dev Calculates the total amount of ETH and ZKPoints that a user can claim from past play rounds.
+     * @dev Calculates the total amount of ETH and SuperchainPoints that a user can claim from past play rounds.
      * [IMPORTANT]: This function writes state by setting the round as claimed. It should only be used
      * when this effect is required
      *
      * This function iterates through previous play rounds in reverse order, checking if the provided user
      * has any unclaimed winnings. If the user has already claimed for a particular round, the function stops.
      * For each round, it checks the winning tickets against the user's tickets and calculates the user's potential
-     * winnings based on the winning logic. The total claimable ETH and ZKPoints are aggregated and returned.
+     * winnings based on the winning logic. The total claimable ETH and SuperchainPoints are aggregated and returned.
      *
      * @param user The address of the user for whom the claimable amounts are being calculated.
      * @return amountEth The total amount of ETH that the user can claim.
-     * @return amountZKPoints The total amount of ZKPoints that the user can claim.
+     * @return amountSuperchainPoints The total amount of SuperchainPoints that the user can claim.
      */
     function _claimableAmounts(
         address user
-    ) internal returns (uint256 amountEth, uint256 amountZKPoints) {
+    ) internal returns (uint256 amountEth, uint256 amountSuperchainPoints) {
         // Get most recent round, excluding this round
         uint256 round = (_roundsSinceStart() - 1);
         // Loop through rounds backwards
@@ -591,7 +591,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     ) {
                         // Get superchainRafflepoints won from winning ticket.  Amount winning points corresponds
                         /// with index in array and ticket index i.e. if your ticket is number 2 in
-                        /// array, then you get reward of ZKPoints
+                        /// array, then you get reward of SuperchainPoints
                         superchainRafflePointsFromWinningTicket += logic
                             .superchainRafflePoints[i];
 
@@ -613,7 +613,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     superchainRafflePointsFromWinningTicket;
                 // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
                 // amount which gets transferred
-                amountZKPoints += _getMultipliedZKPoints(
+                amountSuperchainPoints += _getMultipliedSuperchainPoints(
                     totalSuperchainRafflePointsForRound,
                     multiplierPerRound[round][user]
                 );
@@ -625,20 +625,20 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     /**
-     * @dev Calculates the total amount of ETH and ZKPoints that a user can claim from past play rounds.
+     * @dev Calculates the total amount of ETH and SuperchainPoints that a user can claim from past play rounds.
      *
      * This function iterates through previous play rounds in reverse order, checking if the provided user
      * has any unclaimed winnings. If the user has already claimed for a particular round, the function stops.
      * For each round, it checks the winning tickets against the user's tickets and calculates the user's potential
-     * winnings based on the winning logic. The total claimable ETH and ZKPoints are aggregated and returned.
+     * winnings based on the winning logic. The total claimable ETH and SuperchainPoints are aggregated and returned.
      *
      * @param user The address of the user for whom the claimable amounts are being calculated.
      * @return amountEth The total amount of ETH that the user can claim.
-     * @return amountZKPoints The total amount of ZKPoints that the user can claim.
+     * @return amountSuperchainPoints The total amount of SuperchainPoints that the user can claim.
      */
     function _getClaimableAmounts(
         address user
-    ) internal view returns (uint256 amountEth, uint256 amountZKPoints) {
+    ) internal view returns (uint256 amountEth, uint256 amountSuperchainPoints) {
         // Get most recent round, excluding this round
         uint256 round = (_roundsSinceStart() - 1);
         // Loop through rounds backwards
@@ -670,7 +670,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     ) {
                         // Get superchainRafflepoints won from winning ticket.  Amount winning points corresponds
                         /// with index in array and ticket index i.e. if your ticket is number 2 in
-                        /// array, then you get reward of ZKPoints
+                        /// array, then you get reward of SuperchainPoints
                         superchainRafflePointsFromWinningTicket += logic
                             .superchainRafflePoints[i];
 
@@ -692,7 +692,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     superchainRafflePointsFromWinningTicket;
                 // Pass total superchainRafflePoints for round plus multiplier for round and add result to total
                 // amount which gets transferred
-                amountZKPoints += _getMultipliedZKPoints(
+                amountSuperchainPoints += _getMultipliedSuperchainPoints(
                     totalSuperchainRafflePointsForRound,
                     multiplierPerRound[round][user]
                 );
@@ -702,20 +702,20 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
     function _transferWinnings(
         address _to,
-        uint256 _amountZKPoints,
+        uint256 _amountSuperchainPoints,
         uint256 _amountETH
     ) internal {
-        _mintSuperchainRafflePoints(_to, _amountZKPoints);
+        _mintSuperchainRafflePoints(_to, _amountSuperchainPoints);
         _transferEth(_to, _amountETH);
     }
 
     function _mintSuperchainRafflePoints(
         address _to,
-        uint _amountZKPoints
+        uint _amountSuperchainPoints
     ) internal {
         try
             ISuperchainRafflePoints(superchainRafflePoints)
-                .mintSuperchainRafflePoints(_to, _amountZKPoints)
+                .mintSuperchainRafflePoints(_to, _amountSuperchainPoints)
         returns (bool success) {
             require(success, "SuperchainRaffle Points minted");
         } catch {
@@ -755,7 +755,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         return ((totalWinnableETHPrizeForRound * _percentage) / BPS) - 1;
     }
 
-    function _getMultipliedZKPoints(
+    function _getMultipliedSuperchainPoints(
         uint256 _amount,
         uint256 _multiplier
     ) internal pure returns (uint256) {

@@ -25,7 +25,6 @@ interface ISuperchainRafflePoints {
         uint256 _amount
     ) external returns (bool);
 
-    function withdraw() external;
 
     // --------------------------
     // Errors

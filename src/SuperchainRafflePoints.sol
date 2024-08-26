@@ -9,7 +9,6 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
     // Addresses of the SuperchainRaffle contract
     mapping(address => bool) public superchainRaffles;
     uint private constant ONE_ETHER = 1 ether;
-    address public beneficiary;
 
     // --------------------------
     // Modifiers
@@ -22,11 +21,9 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
     }
 
     constructor(
-        address _superchainRaffle,
-        address _beneficiary
+        address _superchainRaffle
     ) ERC20("superchainRaffle Points", "zkPTS") Ownable(msg.sender) {
         _setSuperchainRaffle(_superchainRaffle);
-        _setBeneficiary(_beneficiary);
     }
 
     // --------------------------
@@ -61,24 +58,12 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
         _setSuperchainRaffle(_newSuperchainRaffle);
     }
 
-    function withdraw() external onlyOwner {
-        if (address(this).balance > 0) {
-            (bool sent, ) = beneficiary.call{value: address(this).balance}("");
-            if (!sent) revert SuperchainRafflePoints__FailedToSentEther();
-        }
-    }
-
     function mintForReferral(
         address _receiver,
         uint _amount
     ) external onlyOwner {
         _mint(_receiver, _amount);
     }
-
-    function setBeneficiary(address _beneficiary) external onlyOwner {
-        _setBeneficiary(_beneficiary);
-    }
-
     // --------------------------
     // Internal
     // --------------------------
@@ -86,10 +71,6 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
     function _setSuperchainRaffle(address _newSuperchainRaffle) internal {
         if (_newSuperchainRaffle == address(0)) revert InvalidAddressInput();
         superchainRaffles[_newSuperchainRaffle] = true;
-    }
-
-    function _setBeneficiary(address _beneficiary) internal {
-        beneficiary = _beneficiary;
     }
 
     /**
@@ -112,5 +93,4 @@ contract SuperchainRafflePoints is ISuperchainRafflePoints, ERC20, Ownable {
         super._update(from, to, value);
     }
 
-    receive() external payable {}
 }
