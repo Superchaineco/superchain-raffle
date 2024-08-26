@@ -151,11 +151,11 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 userLevel = superchainModule
             .getSuperChainAccount(msg.sender)
             .level;
-        uint256 ticketsBought = ticketsPerWallet[round][user];
+        uint256 ticketsBought = ticketsPerWallet[round][msg.sender];
         if (ticketsBought >= userLevel) {
             return 0;
         } else {
-            return maxFreeTickets - ticketsBought;
+            return userLevel - ticketsBought;
         }
     }
 
