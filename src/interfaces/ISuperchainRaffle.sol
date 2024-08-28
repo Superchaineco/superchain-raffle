@@ -10,7 +10,7 @@ interface ISuperchainRaffle {
         uint256[] payoutPercentage;
     }
 
-    struct RoundPrize{
+    struct RoundPrize {
         uint256 OpAmount;
         uint256 EthAmount;
     }
@@ -29,11 +29,7 @@ interface ISuperchainRaffle {
         uint256 ticketsSold,
         uint256[] winningTickets
     );
-    event Claim(
-        address indexed user,
-        uint256 amountEth,
-        uint256 amountSuperchainRafflePoints
-    );
+    event Claim(address indexed user, uint256 amountEth, uint256 amountOp);
 
     // --------------------------
     // Errors
@@ -49,6 +45,8 @@ interface ISuperchainRaffle {
     error SuperchainRaffle__NotEnoughFreeTickets();
     error SuperchainRaffle__NotSponsoredRaffle();
     error SuperchainRaffle__NotEnoughEtherInContract();
+    error SuperchainRaffle__NotEnoughOpInContract();
+    error SuperchainRaffle__FailedToSentOp();
     error SuperchainRaffle__FailedToSentEther();
     error SuperchainRaffle__SuperchainRaffleNotStartedYet();
     error SuperchainRaffle__InvalidEndRound();

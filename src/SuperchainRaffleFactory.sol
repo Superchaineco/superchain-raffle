@@ -6,12 +6,12 @@ import {SuperchainRaffle } from "./SuperchainRaffle.sol";
 
 contract SuperchainRaffleFactory is Ownable  {
     event SuperchainRaffleCreated(address superchainRaffle);
-    ISuperchainModule private _superchainModule;
+    address private _superchainModule;
     SuperchainRaffle[] public raffles;
     address private _opToken;
 
     constructor(address superchainModule, address opToken) Ownable(msg.sender) {
-        _superchainModule = ISuperchainModule(superchainModule);
+        _superchainModule = superchainModule;
         _opToken = opToken;
     }
 
@@ -41,7 +41,7 @@ contract SuperchainRaffleFactory is Ownable  {
     }
 
     function setSuperchainModule(address superchainModule) external onlyOwner {
-        _superchainModule = ISuperchainModule(superchainModule);
+        _superchainModule = superchainModule;
     }
 
     /**
