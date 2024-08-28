@@ -15,3 +15,58 @@ type SuperchainRaffleCreated @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
+type Claim @entity(immutable: true) {
+  id: Bytes!
+  user: Bytes! # address
+  amountEth: BigInt! # uint256
+  amountOp: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type SuperChainRaffleOwnershipTransferred @entity(immutable: true) {
+  id: Bytes!
+  previousOwner: Bytes! # address
+  newOwner: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Paused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type RoundWinners @entity(immutable: true) {
+  id: Bytes!
+  round: BigInt! # uint256
+  ticketsSold: BigInt! # uint256
+  winningTickets: [BigInt!]! # uint256[]
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type TicketsPurchased @entity(immutable: true) {
+  id: Bytes!
+  buyer: Bytes! # address
+  startingTicketNumber: BigInt! # uint256
+  numberOfTicketsBought: BigInt! # uint256
+  round: BigInt! # uint256
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
+
+type Unpaused @entity(immutable: true) {
+  id: Bytes!
+  account: Bytes! # address
+  blockNumber: BigInt!
+  blockTimestamp: BigInt!
+  transactionHash: Bytes!
+}
