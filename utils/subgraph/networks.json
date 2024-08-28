@@ -1,0 +1,8 @@
+{
+  "sepolia": {
+    "SuperchainRaffleFactory": {
+      "address": "0x3F0A7ad97e3741E897009b392b2C9D37AE3e7cC6",
+      "startBlock": 6589342
+    }
+  }
+}

@@ -1,0 +1,29 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: SuperchainRaffleFactory
+    network: sepolia
+    source:
+      address: "0x3F0A7ad97e3741E897009b392b2C9D37AE3e7cC6"
+      abi: SuperchainRaffleFactory
+      startBlock: 6589342
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - OwnershipTransferred
+        - SuperchainRaffleCreated
+      abis:
+        - name: SuperchainRaffleFactory
+          file: ./abis/SuperchainRaffleFactory.json
+      eventHandlers:
+        - event: OwnershipTransferred(indexed address,indexed address)
+          handler: handleOwnershipTransferred
+        - event: SuperchainRaffleCreated(address,string)
+          handler: handleSuperchainRaffleCreated
+      file: ./src/superchain-raffle-factory.ts

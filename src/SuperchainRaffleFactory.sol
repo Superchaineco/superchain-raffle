@@ -5,7 +5,8 @@ import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
 import {SuperchainRaffle } from "./SuperchainRaffle.sol";
 
 contract SuperchainRaffleFactory is Ownable  {
-    event SuperchainRaffleCreated(address superchainRaffle);
+    event SuperchainRaffleCreated(address superchainRaffle, string uri);
+    
     address private _superchainModule;
     SuperchainRaffle[] public raffles;
     address private _opToken;
@@ -22,7 +23,8 @@ contract SuperchainRaffleFactory is Ownable  {
         uint[] memory _numberOfWinners,
         uint[][] memory _payoutPercentage,
         address _beneficiary,
-        uint _fee
+        uint _fee,
+        string memory _uri
     ) external onlyOwner {
         SuperchainRaffle raffle = new SuperchainRaffle(
             _numberOfWinners,
@@ -32,12 +34,11 @@ contract SuperchainRaffleFactory is Ownable  {
             _superchainModule,
             _fee
         );
-
+        raffle.setURI(_uri);
         raffle.transferOwnership(msg.sender);
-
         raffles.push(raffle);
 
-        emit SuperchainRaffleCreated(address(raffle));
+        emit SuperchainRaffleCreated(address(raffle), _uri);
     }
 
     function setSuperchainModule(address superchainModule) external onlyOwner {

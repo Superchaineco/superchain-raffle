@@ -12,6 +12,7 @@ import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
 contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     address public beneficiary;
     IERC20 public opToken;
+    string public uri;
     // Track rounds
     uint256 public startTime;
     // SafeModule for SuperchainSmartAccount
@@ -25,9 +26,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     // Basis points used for percentage calculation
     uint256 public immutable BPS = 10_000;
     // Maximum number of play tickets per round
-    uint256 public maxAmountTickets = 2;
+    uint256 public maxAmountTickets = 250;
     // Maximum number of play tickets per address, per round
-    uint256 public maxTicketsPerWallet = 10;
     mapping(uint256 => RoundPrize) public roundPrizes;
     // Round => ticket number => Address;
     mapping(uint256 => mapping(uint256 => address))
@@ -121,10 +121,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             revert SuperchainRaffle__MaxNumberOfTicketsReached();
         // Get number of bought tickets for round
         uint256 currentBoughtTickets = ticketsPerWallet[round][msg.sender];
-        // Validate if current bought + desired buy amount <= Max buyable amount per round = 10
-        if (currentBoughtTickets + _numberOfTickets > maxTicketsPerWallet)
-            revert MaxTicketsBoughtForRound();
-
         // Get current number of tickets sold
         uint256 currentNumberOfTicketsSold = ticketsSoldPerRound[round];
         // Calculate new tickets sold for the play round
@@ -408,6 +404,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         for (uint256 i = currentRound; i < currentRound + rounds; i++) {
             roundPrizes[i].EthAmount += (EthAmount / rounds);
             roundPrizes[i].OpAmount += (OpAmount / rounds);
+            //   emit RaffleFunded(i, EthAmount / rounds, OpAmount / rounds);
         }
     }
 
@@ -421,6 +418,14 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _amountTickets
     ) external onlyOwner {
         _setMaxAmountTicketsPerRound(_amountTickets);
+    }
+
+    function setURI(string memory _uri) external onlyOwner {
+        uri = _uri;
+    }
+
+    function _setURI(string memory _uri) internal {
+        uri = _uri;
     }
 
     function setBeneficiary(address _beneficiary) external onlyOwner {
@@ -446,24 +451,23 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         _unpause();
     }
 
-    function withdraw(uint256 _amountEth, uint256 _amountOp) external onlyOwner {
+    function withdraw(
+        uint256 _amountEth,
+        uint256 _amountOp
+    ) external onlyOwner {
         if (_amountEth > address(this).balance)
             revert SuperchainRaffle__NotEnoughEtherInContract();
         (bool sent, ) = payable(beneficiary).call{value: _amountEth}("");
         if (!sent) revert SuperchainRaffle__FailedToSentEther();
-        if(_amountOp > opToken.balanceOf(address(this))){
+        if (_amountOp > opToken.balanceOf(address(this))) {
             revert SuperchainRaffle__NotEnoughOpInContract();
         }
         bool opSent = IERC20(opToken).transfer(beneficiary, _amountOp);
-        if(! opSent) revert SuperchainRaffle__FailedToSentOp();
+        if (!opSent) revert SuperchainRaffle__FailedToSentOp();
     }
 
     function setProtocolFee(uint256 _fee) external onlyOwner {
         _setProtocolFee(_fee);
-    }
-
-    function setMaxTicketsPerWallet(uint256 _amount) external onlyOwner {
-        _setMaxTicketsPerWallet(_amount);
     }
 
     // --------------------------
@@ -515,7 +519,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                             round
                         ) == user
                     ) {
-
                         // Calculate and add amount of ETH won in the following manner:
                         // 1. Percentage won for this ticket, of total ETH of round corresponds with
                         // index in array, i.e. if ticket number 1 wins 75%, then index 0 in array has
@@ -659,7 +662,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             return 0;
         }
 
-        return ((totalOPCollected * _percentage) / BPS) ;
+        return ((totalOPCollected * _percentage) / BPS);
     }
 
     function _getTicketBuyerAddress(
@@ -709,10 +712,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
     function _setProtocolFee(uint256 _fee) internal {
         protocolFee = _fee;
-    }
-
-    function _setMaxTicketsPerWallet(uint256 _amount) internal {
-        maxTicketsPerWallet = _amount;
     }
 
     function _setWinningLogic(
