@@ -32,7 +32,9 @@ export function handleRaffleFunded(event: RaffleFundedEvent): void {
 
 export function handleRaffleStarted(event: RaffleStartedEvent): void {
   let raffle = Raffle.load(event.address);
-  if (!raffle) return;
+  if (!raffle) {
+    raffle = new Raffle(event.address);
+  };
   raffle.initTimestamp = event.block.timestamp;
   raffle.save();
 }
