@@ -70,3 +70,18 @@ type Unpaused @entity(immutable: true) {
   blockTimestamp: BigInt!
   transactionHash: Bytes!
 }
+
+type Raffle @entity {
+  id: Bytes! # address
+  initTimestamp: BigInt! # uint256
+  uri: String! # string
+  rounds: [Round!]! @derivedFrom(field: "raffle")
+}
+
+type Round @entity {
+  id: Bytes! # uint256
+  roundNumber: BigInt! # uint256
+  raffle: Raffle! @relation
+  prizeEth: BigInt! # uint256
+  prizeOp: BigInt! # uint256
+}

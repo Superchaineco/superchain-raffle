@@ -37,7 +37,7 @@ contract Deploy is Script {
             0x600EB8D9Cf9aB34302c8A089B0eb3cad988e7303,
             address(_opToken)
         );
-        factory.createSuperchainRaffle(_numberOfWinners, _payoutPercentage, beneficiary,0, "dummy");
+        factory.createSuperchainRaffle(_numberOfWinners, _payoutPercentage, beneficiary,0, "http://localhost:3000/api/raffle?file=raffle-weekly-se");
         address raffle = factory.getRaffle(0);
         RandomizerWrapper randomizerWrapper = new RandomizerWrapper(
             raffle,
@@ -51,13 +51,13 @@ contract Deploy is Script {
 
         vm.stopBroadcast();
         console.logString(
-            string.concat("Raffle contract:", vm.toString((address(raffle))))
+            string.concat("Raffle contract: ", vm.toString((address(raffle))))
         );
         console.logString(
-            string.concat("RandomizerWrapper contract:", vm.toString((address(randomizerWrapper))))
+            string.concat("RandomizerWrapper contract: ", vm.toString((address(randomizerWrapper))))
         );
         console.logString(
-            string.concat("Factory contract:", vm.toString((address(factory))))
+            string.concat("Factory contract: ", vm.toString((address(factory))))
         );
     }
 }

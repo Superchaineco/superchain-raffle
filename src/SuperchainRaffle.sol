@@ -404,7 +404,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         for (uint256 i = currentRound; i < currentRound + rounds; i++) {
             roundPrizes[i].EthAmount += (EthAmount / rounds);
             roundPrizes[i].OpAmount += (OpAmount / rounds);
-            //   emit RaffleFunded(i, EthAmount / rounds, OpAmount / rounds);
+              emit RaffleFunded(i, EthAmount / rounds, OpAmount / rounds);
         }
     }
 
@@ -441,6 +441,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
     function setStartTime(uint256 _timeStamp) external onlyOwner {
         startTime = _timeStamp;
+        emit RaffleStarted(_timeStamp);
     }
 
     function pause() external onlyOwner {

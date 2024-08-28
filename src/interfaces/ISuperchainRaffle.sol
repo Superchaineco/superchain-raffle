@@ -24,11 +24,12 @@ interface ISuperchainRaffle {
         uint256 numberOfTicketsBought,
         uint256 indexed round
     );
-    // event RaffleFunded(
-    //     uint256 indexed round,
-    //     uint256 ethAmount,
-    //     uint256 opAmount
-    // );
+    event RaffleFunded(
+        uint256 indexed round,
+        uint256 ethAmount,
+        uint256 opAmount
+    );
+    event RaffleStarted(uint256 timestamp);
     event RoundWinners(
         uint256 indexed round,
         uint256 ticketsSold,

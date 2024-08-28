@@ -8,7 +8,7 @@ dataSources:
     name: SuperchainRaffleFactory
     network: sepolia
     source:
-      address: "0x3F0A7ad97e3741E897009b392b2C9D37AE3e7cC6"
+      address: "0x844be8CD14ABd68eDEb31371e5B532EaAb9Ea631"
       abi: SuperchainRaffleFactory
       startBlock: 6589342
     mapping:
@@ -31,7 +31,7 @@ dataSources:
     name: SuperChainRaffle
     network: sepolia
     source:
-      address: "0xDeBC51271010d802d29732e2dc657be77dB4d6c9"
+      address: "0x5840Cd416458904526D54C4bdBFF9A924985a153"
       abi: SuperChainRaffle
       startBlock: 6589342
     mapping:
@@ -45,12 +45,18 @@ dataSources:
         - RoundWinners
         - TicketsPurchased
         - Unpaused
+        - Raffle
+        - Round
       abis:
         - name: SuperChainRaffle
           file: ./abis/SuperChainRaffle.json
       eventHandlers:
         - event: Claim(indexed address,uint256,uint256)
           handler: handleClaim
+        - event: RaffleStarted(uint256)
+          handler: handleRaffleStarted
+        - event: RaffleFunded(indexed uint256,uint256,uint256)
+          handler: handleRaffleFunded
         - event: OwnershipTransferred(indexed address,indexed address)
           handler: handleOwnershipTransferred
         - event: Paused(address)
