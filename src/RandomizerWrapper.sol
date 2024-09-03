@@ -259,6 +259,9 @@ contract RandomizerWrapper is
             if (!sent) revert RandomizerWrapper__FailedToSentEther();
         }
     }
+    function setOperator(address operator) external onlyOwner {
+        _operatorAddr = operator;
+    }
 
     function _operator() internal view override returns (address) {
         return _operatorAddr;

@@ -1,3 +1,4 @@
+import { BigInt } from "@graphprotocol/graph-ts";
 import {
   Claim as ClaimEvent,
   OwnershipTransferred as OwnershipTransferredEvent,
@@ -17,14 +18,18 @@ import {
   Unpaused,
   Raffle,
   Round,
+  User,
+  UserRoundTickets,
 } from "../generated/schema";
 
 export function handleRaffleFunded(event: RaffleFundedEvent): void {
-  let round = new Round(
-    event.transaction.hash.concatI32(event.logIndex.toI32()),
-  );
-  round.raffle = event.address;
-  round.roundNumber = event.params.round;
+  let round = Round.load(event.params.round.toString());
+  if (!round) {
+    round = new Round(event.params.round.toString());
+    round.raffle = event.address;
+    round.roundNumber = event.params.round;
+    round.ticketsSold = new BigInt(0);
+  }
   round.prizeOp = event.params.opAmount;
   round.prizeEth = event.params.ethAmount;
   round.save();
@@ -34,7 +39,7 @@ export function handleRaffleStarted(event: RaffleStartedEvent): void {
   let raffle = Raffle.load(event.address);
   if (!raffle) {
     raffle = new Raffle(event.address);
-  };
+  }
   raffle.initTimestamp = event.block.timestamp;
   raffle.save();
 }
@@ -112,6 +117,39 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
   entity.transactionHash = event.transaction.hash;
 
   entity.save();
+  let round = Round.load(event.params.round.toString());
+  if (!round) {
+    round = new Round(event.params.round.toString());
+    round.roundNumber = event.params.round;
+    round.raffle = event.address;
+    round.save();
+  }
+  round.ticketsSold = round.ticketsSold.plus(
+    event.params.numberOfTicketsBought,
+  );
+  let user = User.load(event.params.buyer);
+  if (!user) {
+    user = new User(event.params.buyer);
+    user.save();
+  }
+  let userRoundTicketsId = event.params.buyer.concatI32(
+    event.params.round.toI32(),
+  );
+  let userRoundTickets = UserRoundTickets.load(userRoundTicketsId);
+
+  if (!userRoundTickets) {
+    userRoundTickets = new UserRoundTickets(userRoundTicketsId);
+    userRoundTickets.user = user.id;
+    userRoundTickets.round = round.id;
+    userRoundTickets.numberOfTickets = event.params.numberOfTicketsBought;
+  } else {
+    // If the user has already bought tickets in this round, add the new tickets to the existing count
+    userRoundTickets.numberOfTickets = userRoundTickets.numberOfTickets.plus(
+      event.params.numberOfTicketsBought,
+    );
+  }
+
+  userRoundTickets.save();
 }
 
 export function handleUnpaused(event: UnpausedEvent): void {

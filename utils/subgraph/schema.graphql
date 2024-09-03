@@ -79,9 +79,23 @@ type Raffle @entity {
 }
 
 type Round @entity {
-  id: Bytes! # uint256
+  id: String! # uint256
   roundNumber: BigInt! # uint256
   raffle: Raffle! @relation
   prizeEth: BigInt! # uint256
   prizeOp: BigInt! # uint256
+  ticketsSold: BigInt! # uiddnt256
+  users: [UserRoundTickets!]! @derivedFrom(field: "round")
+}
+
+type User @entity {
+  id: Bytes! # address
+  rounds: [UserRoundTickets!]! @derivedFrom(field: "user")
+}
+
+type UserRoundTickets @entity {
+  id: Bytes!
+  user: User! @relation
+  round: Round! @relation
+  numberOfTickets: BigInt! # uint256
 }

@@ -34,7 +34,7 @@ contract Deploy is Script {
         address beneficiary = msg.sender;
         MockERC20 _opToken = new MockERC20();
         SuperchainRaffleFactory factory = new SuperchainRaffleFactory(
-            0x600EB8D9Cf9aB34302c8A089B0eb3cad988e7303,
+           0x48D64d3f2B43f68d3F26384809e18bF90E4F2a31 ,
             address(_opToken)
         );
         factory.createSuperchainRaffle(_numberOfWinners, _payoutPercentage, beneficiary,0, "http://localhost:3000/api/raffle?file=raffle-weekly-se");
@@ -52,7 +52,10 @@ contract Deploy is Script {
         vm.stopBroadcast();
         console.logString(
             string.concat("Raffle contract: ", vm.toString((address(raffle))))
-        );
+    );
+    console.logString(
+      string.concat("Op token: ", vm.toString((address(_opToken))))
+    );
         console.logString(
             string.concat("RandomizerWrapper contract: ", vm.toString((address(randomizerWrapper))))
         );

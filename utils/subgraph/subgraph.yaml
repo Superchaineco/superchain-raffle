@@ -8,7 +8,7 @@ dataSources:
     name: SuperchainRaffleFactory
     network: sepolia
     source:
-      address: "0x844be8CD14ABd68eDEb31371e5B532EaAb9Ea631"
+      address: "0x67eD2F7f03780de1AA80d9F49aEea4e6925b4387"
       abi: SuperchainRaffleFactory
       startBlock: 6589342
     mapping:
@@ -31,7 +31,7 @@ dataSources:
     name: SuperChainRaffle
     network: sepolia
     source:
-      address: "0x5840Cd416458904526D54C4bdBFF9A924985a153"
+      address: "0x30282Cf294eD607B837fa539E8F16B3a14c2d2Ae"
       abi: SuperChainRaffle
       startBlock: 6589342
     mapping:

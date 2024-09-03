@@ -84,6 +84,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             );
     }
 
+
+
     /**
      * @dev Allows a user to buy play tickets.
      *
@@ -100,22 +102,24 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
      *
      * @param _numberOfTickets The number of tickets the sender wants to buy.
      */
-    function enterRaffle(uint256 _numberOfTickets) external whenNotPaused {
+
+    function enterRaffle(uint256 _numberOfTickets, address user) external whenNotPaused  returns (address saa)
+{
         if (
-            ISuperchainModule(superchainModule)
-                .superChainAccount(msg.sender)
-                .smartAccount == address(0)
+
+        ISuperchainModule(superchainModule).getSuperChainAccount(user).smartAccount == address(0)
         ) {
             revert SuperchainRaffle__SenderIsNotSCSA();
         }
+        require(user == msg.sender, "SuperChainSmartAccount: Wrong user");
         // Get current round
         uint256 round = _roundsSinceStart();
-        uint256 ticketsRemaining = freeTicketsRemaining();
-
+        uint256 ticketsRemaining = freeTicketsRemaining(user);
+        
         if (_numberOfTickets > ticketsRemaining) {
             revert SuperchainRaffle__NotEnoughFreeTickets();
         }
-
+        
         // Check if max amount of tickets buyable per round is not reached
         if (ticketsSoldPerRound[round] + _numberOfTickets > maxAmountTickets)
             revert SuperchainRaffle__MaxNumberOfTicketsReached();
@@ -140,16 +144,18 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             _numberOfTickets,
             round
         );
+
+
     }
 
-    function freeTicketsRemaining() public view returns (uint256) {
+    function freeTicketsRemaining(address user) public view returns (uint256) {
         uint256 round = _roundsSinceStart();
 
-        uint256 userLevel = ISuperchainModule(superchainModule)
-            .getSuperChainAccount(msg.sender)
+        uint16 userLevel = ISuperchainModule(superchainModule)
+            .getSuperChainAccount(user)
             .level;
-        uint256 ticketsBought = ticketsPerWallet[round][msg.sender];
-        if (ticketsBought >= userLevel) {
+        uint256 ticketsBought = ticketsPerWallet[round][user];
+        if (ticketsBought >= uint256(userLevel)) {
             return 0;
         } else {
             return userLevel - ticketsBought;
@@ -437,6 +443,9 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         bool _mainnetWrapper
     ) external onlyOwner {
         _setRandomizerWrapper(_newRandomizerWrapper, _mainnetWrapper);
+    }
+    function setSuperchainModule(address _newSuperchainModule) external onlyOwner {
+        _setSuperchainModule(_newSuperchainModule);
     }
 
     function setStartTime(uint256 _timeStamp) external onlyOwner {
