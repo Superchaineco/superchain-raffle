@@ -98,4 +98,5 @@ type UserRoundTickets @entity {
   user: User! @relation
   round: Round! @relation
   numberOfTickets: BigInt! # uint256
+  ticketNumbers: [BigInt!]! # uint256[]
 }
