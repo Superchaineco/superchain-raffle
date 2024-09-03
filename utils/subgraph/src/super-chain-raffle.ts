@@ -122,11 +122,11 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     round = new Round(event.params.round.toString());
     round.roundNumber = event.params.round;
     round.raffle = event.address;
-    round.save();
   }
   round.ticketsSold = round.ticketsSold.plus(
     event.params.numberOfTicketsBought,
   );
+  round.save();
   let user = User.load(event.params.buyer);
   if (!user) {
     user = new User(event.params.buyer);
@@ -143,7 +143,6 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     userRoundTickets.round = round.id;
     userRoundTickets.numberOfTickets = event.params.numberOfTicketsBought;
   } else {
-    // If the user has already bought tickets in this round, add the new tickets to the existing count
     userRoundTickets.numberOfTickets = userRoundTickets.numberOfTickets.plus(
       event.params.numberOfTicketsBought,
     );
