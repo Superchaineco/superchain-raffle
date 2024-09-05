@@ -48,6 +48,16 @@ export function handleClaim(event: ClaimEvent): void {
   let entity = new Claim(
     event.transaction.hash.concatI32(event.logIndex.toI32()),
   );
+  let user = User.load(event.params.user);
+  if(!user ){
+    user = new User(event.params.user)
+    user.opPrizes = event.params.amountOp
+    user.ethPrizes = event.params.amountEth
+  }else{
+    user.opPrizes = user.opPrizes.plus(event.params.amountOp);
+    user.ethPrizes = user.ethPrizes.plus(event.params.amountEth);
+  }
+  user.save()
   entity.user = event.params.user;
   entity.amountEth = event.params.amountEth;
   entity.amountOp = event.params.amountOp;
@@ -130,7 +140,9 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
   let user = User.load(event.params.buyer);
   if (!user) {
     user = new User(event.params.buyer);
-    user.save();
+    user.opPrizes = new BigInt(0);
+    user.ethPrizes = new BigInt(0);
+    user.save()
   }
   let userRoundTicketsId = event.params.buyer.concatI32(
     event.params.round.toI32(),

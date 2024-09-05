@@ -90,7 +90,10 @@ type Round @entity {
 
 type User @entity {
   id: Bytes! # address
+  opPrizes: BigInt! # uint256
+  ethPrizes: BigInt! # uint256
   rounds: [UserRoundTickets!]! @derivedFrom(field: "user")
+  
 }
 
 type UserRoundTickets @entity {
