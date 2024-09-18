@@ -132,6 +132,9 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     round = new Round(event.params.round.toString());
     round.roundNumber = event.params.round;
     round.raffle = event.address;
+    round.ticketsSold = new BigInt(0);
+    round.prizeOp = new BigInt(0);
+    round.prizeEth = new BigInt(0);
   }
   round.ticketsSold = round.ticketsSold.plus(
     event.params.numberOfTicketsBought,
