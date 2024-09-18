@@ -115,7 +115,7 @@ contract TestRaffle is Test {
 
     function testFreeTickets() public {
         vm.startPrank(testUser);
-        raffle.enterRaffle(1);
+        raffle.enterRaffle(1, msg.sender);
 
         assertEq(
             raffle.getUserTicketsPerRound(testUser, raffle.roundsSinceStart()),
@@ -123,7 +123,7 @@ contract TestRaffle is Test {
             "Free ticket not added"
         );
         assertEq(
-            raffle.freeTicketsRemaining(),
+            raffle.freeTicketsRemaining(msg.sender),
             0,
             "Free tickets remaining not updated"
         );
@@ -138,7 +138,7 @@ contract TestRaffle is Test {
             raffle.roundsSinceStart()
         );
         vm.expectRevert();
-        raffle.enterRaffle(1);
+        raffle.enterRaffle(1, msg.sender);
 
         vm.stopPrank();
     }
@@ -172,7 +172,7 @@ contract TestRaffle is Test {
         for (uint i = 0; i < 10; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1); // Asumimos que cada usuario compra 1 boleto
+            raffle.enterRaffle(1, msg.sender); // Asumimos que cada usuario compra 1 boleto
             vm.stopPrank();
         }
 
@@ -265,7 +265,7 @@ contract TestRaffle is Test {
         for (uint i = 0; i < 15; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1);
+            raffle.enterRaffle(1, msg.sender);
             vm.stopPrank();
         }
 
@@ -335,7 +335,7 @@ contract TestRaffle is Test {
         for (uint i = 0; i < 10; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1);
+            raffle.enterRaffle(1, msg.sender);
             vm.stopPrank();
         }
 
