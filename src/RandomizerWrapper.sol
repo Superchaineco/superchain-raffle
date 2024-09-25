@@ -50,5 +50,9 @@ contract RandomizerWrapper is IRandomizerWrapper, Ownable, GelatoVRFConsumerBase
         beneficiary = _beneficiary;
     }
 
+    function setWhitelistedRaffle(address _raffle, bool _whitelisted) external onlyOwner {
+        raffleWhitelisted[_raffle] = _whitelisted;
+    }
+
     receive() external payable {}
 }

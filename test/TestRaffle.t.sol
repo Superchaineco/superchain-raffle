@@ -29,7 +29,7 @@ contract TestRaffle is Test {
     address testUser14 = vm.addr(14);
     address testUser15 = vm.addr(15);
     address[] testUsers;
-
+    uint256[][] payoutPercentage;
     function setUp() public {
         uint256[] memory _numberOfWinners = new uint256[](2);
         _numberOfWinners[0] = 1;
@@ -68,10 +68,17 @@ contract TestRaffle is Test {
         c[9] = 100;
         _payoutPercentage[0] = a;
         _payoutPercentage[1] = c;
+        payoutPercentage = _payoutPercentage;
+
 
         // Definir el beneficiario
         address _beneficiary = address(this);
 
+        mockRandomizerWrapper = new MockRandomizerWrapper(
+            address(raffle),
+            address(this),
+            address(this)
+        );
         mockSuperchainModule = new MockSuperchainModule();
         _opToken = new MockERC20();
         raffle = new SuperchainRaffle(
@@ -80,15 +87,11 @@ contract TestRaffle is Test {
             _beneficiary,
             address(_opToken),
             address(mockSuperchainModule),
-            0
-        );
-        mockRandomizerWrapper = new MockRandomizerWrapper(
-            address(raffle),
-            address(this),
-            address(this)
+            address(mockRandomizerWrapper)
         );
 
-        raffle.setRandomizerWrapper(address(mockRandomizerWrapper), true);
+        mockRandomizerWrapper.setWhitelistedRaffle(address(raffle), true);
+
         raffle.setStartTime(block.timestamp);
         _opToken.mint(address(this), 100000000000000 * 10 ** 18);
         _opToken.approve(address(raffle), 100000000000000 * 10 ** 18);
@@ -103,7 +106,7 @@ contract TestRaffle is Test {
 
         // Verificar que los fondos se han distribuido correctamente
         for (uint256 i = 1; i <= roundsToFund; i++) {
-            (uint256 opPrize, uint256 ethPrize) = raffle.roundPrizes(i);
+            (uint256 ethPrize, uint256 opPrize) = raffle.getRoundPrizes(i);
             assertEq(
                 ethPrize,
                 ethAmount / roundsToFund,
@@ -111,11 +114,28 @@ contract TestRaffle is Test {
             );
             assertEq(opPrize, opAmount / roundsToFund, "OP amount incorrect");
         }
+        assertEq(
+            _opToken.balanceOf(address(raffle)),
+            opAmount,
+            "OP balance incorrect"
+        );
+        assertEq(address(raffle).balance, ethAmount, "ETH balance incorrect");
+    }
+
+    function testEnterRaffle() public {
+        vm.startPrank(testUser);
+        raffle.enterRaffle(1);
+        assertEq(
+            raffle.getUserTicketsPerRound(testUser, raffle.roundsSinceStart()),
+            1,
+            "Ticket not added"
+        );
+        vm.stopPrank();
     }
 
     function testFreeTickets() public {
         vm.startPrank(testUser);
-        raffle.enterRaffle(1, msg.sender);
+        raffle.enterRaffle(1);
 
         assertEq(
             raffle.getUserTicketsPerRound(testUser, raffle.roundsSinceStart()),
@@ -123,22 +143,17 @@ contract TestRaffle is Test {
             "Free ticket not added"
         );
         assertEq(
-            raffle.freeTicketsRemaining(msg.sender),
+            raffle.freeTicketsRemaining(testUser),
             0,
             "Free tickets remaining not updated"
         );
         assertEq(
-            raffle.ticketsSoldPerRound(raffle.roundsSinceStart()),
+            raffle.getTotalTicketsPerRound(raffle.roundsSinceStart()),
             1,
             "Tickets sold not updated"
         );
-        console.log(
-            "Tickets sold",
-            raffle.ticketsSoldPerRound(raffle.roundsSinceStart()),
-            raffle.roundsSinceStart()
-        );
         vm.expectRevert();
-        raffle.enterRaffle(1, msg.sender);
+        raffle.enterRaffle(1);
 
         vm.stopPrank();
     }
@@ -147,7 +162,11 @@ contract TestRaffle is Test {
         testFundRaffle();
         testFreeTickets();
         vm.warp(block.timestamp + 1 weeks + 1 days);
-        assertEq(raffle.ticketsSoldPerRound(1), 1, "Tickets sold not updated");
+        assertEq(
+            raffle.getTotalTicketsPerRound(1),
+            1,
+            "Tickets sold not updated"
+        );
         raffle.raffle();
         vm.startPrank(testUser);
         raffle.claim();
@@ -166,27 +185,91 @@ contract TestRaffle is Test {
         assertEq(address(testUser).balance, 3 ether, "ETH transferred");
         vm.stopPrank();
     }
+    function testMultipleUsersClaims() public {
+        testFundRaffle();
+        for (uint i = 0; i < 15; i++) {
+            address testUserN = testUsers[i];
+            vm.prank(testUserN);
+            raffle.enterRaffle(1);
+            vm.stopPrank();
+        }
+        vm.warp(block.timestamp + 1 weeks + 1 days);
+        raffle.raffle();
+        uint256[] memory winningNumbers = raffle.getWinningNumbers(
+            raffle.roundsSinceStart() - 1
+        );
+        for (uint i = 0; i < winningNumbers.length; i++) {
+            address winnerN = raffle.getTicketOwner(
+                winningNumbers[i],
+                raffle.roundsSinceStart() - 1
+            );
+            vm.startPrank(winnerN);
+            raffle.claim();
+            assertEq(
+                _opToken.balanceOf(winnerN),
+                ((3 * 10 ** 18) * payoutPercentage[1][i]) / 10_000,
+                "OP tokens transferred"
+            );
+            assertEq(winnerN.balance, (3 ether  * payoutPercentage[1][i]) / 10_000, "ETH transferred");
+            vm.stopPrank();
+        }
+    }
+
+    function testRaffleWithNoTicketsSold() public {
+        testFundRaffle();
+        vm.warp(block.timestamp + 3 weeks + 1 days);
+        raffle.raffle();
+        // Verificar que no se hayan generado números ganadores
+        for (uint256 i = 1; i <= 3; i++) {
+            (uint256 ethPrize, uint256 opPrize) = raffle.getRoundPrizes(raffle.roundsSinceStart());
+            assertEq(ethPrize, 9 ether , "ETH prize incorrect");
+            assertEq(opPrize, (9 * 10 ** 18) , "OP prize incorrect");
+            assertEq(
+                raffle.getWinningNumbers(i).length,
+                0,
+                "Winning numbers should be empty"
+            );
+        }
+    }
+
+    function testRaffleWithNoPrizes() public {
+        // No se fondeará la rifa
+        vm.startPrank(testUser);
+        raffle.enterRaffle(1);
+        vm.stopPrank();
+        vm.warp(block.timestamp + 1 weeks + 1 days);
+        raffle.raffle();
+        // Verificar que no se hayan generado números ganadores
+        for (uint256 i = 1; i <= 3; i++) {
+            assertEq(
+                raffle.getWinningNumbers(i).length,
+                0,
+                "Winning numbers should be empty"
+            );
+        }
+    }
 
     function testMultiPartyRaffle() public {
         testFundRaffle();
         for (uint i = 0; i < 10; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1, msg.sender); // Asumimos que cada usuario compra 1 boleto
+            raffle.enterRaffle(1);
             vm.stopPrank();
         }
 
         vm.warp(block.timestamp + 1 weeks + 1 days);
         raffle.raffle();
-        uint256 winnerTicket = mockRandomizerWrapper.getWinningTicketsByRound(
+        uint256[] memory winningNumbers = raffle.getWinningNumbers(
             raffle.roundsSinceStart() - 1
-        )[0];
+        );
+        uint256 winnerTicket = winningNumbers[0];
         for (uint i = 0; i < 10; i++) {
             address testUserN = testUsers[i];
 
             vm.startPrank(testUserN);
             raffle.claim();
-            if (i != winnerTicket - 1) {
+            if (i != winnerTicket) {
                 assertEq(
                     _opToken.balanceOf(address(testUserN)),
                     0,
@@ -198,12 +281,10 @@ contract TestRaffle is Test {
             vm.stopPrank();
         }
 
-        uint256 winnersLength = mockRandomizerWrapper
-            .getWinningTicketsByRound(raffle.roundsSinceStart() - 1)
-            .length;
-        address winner = raffle.ticketPerAddressPerRound(
-            raffle.roundsSinceStart() - 1,
-            winnerTicket
+        uint256 winnersLength = winningNumbers.length;
+        address winner = raffle.getTicketOwner(
+            winnerTicket,
+            raffle.roundsSinceStart() - 1
         );
 
         assertEq(winnersLength, 1, "Incorrect number of winners");
@@ -214,20 +295,18 @@ contract TestRaffle is Test {
         );
         assertEq(winner.balance, 3 ether, "ETH transferred incorrectly");
     }
+
     function verifyTotalPrizeDistribution(
         uint256 round
     ) public view returns (bool) {
-        uint256[] memory winningTickets = mockRandomizerWrapper
-            .getWinningTicketsByRound(round);
+        uint256[] memory winningTickets = raffle.getWinningNumbers(round);
+
         uint256 totalETHPrizeForRound = 3 ether; // El total de ETH a distribuir.
         uint256 calculatedTotal = 0;
 
         for (uint256 i = 0; i < winningTickets.length; i++) {
-            uint256 winnerIndex = winningTickets[i] - 1; // Asumiendo que los tickets están indexados desde 1.
-            address winner = raffle.ticketPerAddressPerRound(
-                round,
-                winnerIndex
-            );
+            uint256 winnerIndex = winningTickets[i];
+            address winner = raffle.getTicketOwner(winnerIndex, round);
             uint256 prizeAmount = _calculatePrizeForTicket(
                 i,
                 totalETHPrizeForRound
@@ -265,7 +344,7 @@ contract TestRaffle is Test {
         for (uint i = 0; i < 15; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1, msg.sender);
+            raffle.enterRaffle(1);
             vm.stopPrank();
         }
 
@@ -274,8 +353,9 @@ contract TestRaffle is Test {
         raffle.raffle();
 
         // Obtener los boletos ganadores.
-        uint256[] memory winningTickets = mockRandomizerWrapper
-            .getWinningTicketsByRound(raffle.roundsSinceStart() - 1);
+        uint256[] memory winningTickets = raffle.getWinningNumbers(
+            raffle.roundsSinceStart() - 1
+        );
 
         // Comprobaciones de los reclamos y asegurarse de que los no ganadores no reciban premios.
         for (uint i = 0; i < 15; i++) {
@@ -284,7 +364,7 @@ contract TestRaffle is Test {
 
             // Comprobar si este usuario es uno de los ganadores.
             for (uint j = 0; j < winningTickets.length; j++) {
-                if (i == winningTickets[j] - 1) {
+                if (i == winningTickets[j]) {
                     // Los tickets están indexados desde 1.
                     isWinner = true;
                     break;
@@ -335,13 +415,13 @@ contract TestRaffle is Test {
         for (uint i = 0; i < 10; i++) {
             address testUserN = testUsers[i];
             vm.prank(testUserN);
-            raffle.enterRaffle(1, msg.sender);
+            raffle.enterRaffle(1);
             vm.stopPrank();
         }
 
         vm.warp(block.timestamp + 1 weeks + 1 days);
         raffle.raffle();
-        uint256 winnerTicket = mockRandomizerWrapper.getWinningTicketsByRound(
+        uint256 winnerTicket = raffle.getWinningNumbers(
             raffle.roundsSinceStart() - 1
         )[0];
         for (uint i = 0; i < 10; i++) {
@@ -349,7 +429,7 @@ contract TestRaffle is Test {
 
             vm.startPrank(testUserN);
             raffle.claim();
-            if (i != winnerTicket - 1) {
+            if (i != winnerTicket) {
                 assertEq(
                     _opToken.balanceOf(address(testUserN)),
                     0,
@@ -361,12 +441,12 @@ contract TestRaffle is Test {
             vm.stopPrank();
         }
 
-        uint256 winnersLength = mockRandomizerWrapper
-            .getWinningTicketsByRound(raffle.roundsSinceStart() - 1)
+        uint256 winnersLength = raffle
+            .getWinningNumbers(raffle.roundsSinceStart() - 1)
             .length;
-        address winner = raffle.ticketPerAddressPerRound(
-            raffle.roundsSinceStart() - 1,
-            winnerTicket
+        address winner = raffle.getTicketOwner(
+            winnerTicket,
+            raffle.roundsSinceStart() - 1
         );
 
         assertEq(winnersLength, 1, "Incorrect number of winners");
@@ -376,5 +456,105 @@ contract TestRaffle is Test {
             "OP tokens transferred incorrectly"
         );
         assertEq(winner.balance, 3 ether, "ETH transferred incorrectly");
+    }
+    function testRaffleWithUnfundedOrUnparticipatedRounds() public {
+        // **Paso 1:** Fundear rondas 1 y 3, pero no la ronda 2
+        uint256 ethAmount = 6 ether; // 3 ether por cada ronda fondeada
+        uint256 opAmount = 6 * 10 ** 18; // 3 tokens OP por cada ronda fondeada
+
+        // Fondear ronda 1
+        raffle.fundRaffle{value: 3 ether}(1, 3 * 10 ** 18);
+
+        // Ronda 1
+        vm.startPrank(testUser);
+        raffle.enterRaffle(1);
+        vm.stopPrank();
+
+        // **Nota:** No fondeamos la ronda 2
+
+        // Avanzar el tiempo a la ronda 2
+        vm.warp(block.timestamp + 1 weeks);
+
+        // Ronda 2
+        vm.startPrank(testUser2);
+        raffle.enterRaffle(1);
+        vm.stopPrank();
+
+        // Avanzar el tiempo a la ronda 3
+        vm.warp(block.timestamp + 1 weeks);
+
+        // Fondear ronda 3
+        raffle.fundRaffle{value: 3 ether}(1, 3 * 10 ** 18);
+
+        // **Nota:** No hay participantes en la ronda 3
+
+        // Avanzar el tiempo al final de la ronda 3
+        vm.warp(block.timestamp + 1 weeks);
+
+        // **Paso 3:** Ejecutar la función raffle
+        raffle.raffle();
+
+        // **Paso 4:** Verificar los resultados
+
+        // **Ronda 1:** fondeada y con participación - deberia tener ganadores
+        uint256[] memory winningNumbersRound1 = raffle.getWinningNumbers(1);
+        assertEq(
+            winningNumbersRound1.length,
+            1,
+            "Ronda 1 deberia tener 1 ganador"
+        );
+
+        // **Ronda 2:** no fondeada pero con participación - no deberia generar ganadores
+        uint256[] memory winningNumbersRound2 = raffle.getWinningNumbers(2);
+        assertEq(
+            winningNumbersRound2.length,
+            0,
+            "Ronda 2 no deberia tener ganadores"
+        );
+
+        // **Ronda 3:** fondeada pero sin participación - no deberia generar ganadores
+        uint256[] memory winningNumbersRound3 = raffle.getWinningNumbers(3);
+        assertEq(
+            winningNumbersRound3.length,
+            0,
+            "Ronda 3 no deberia tener ganadores"
+        );
+
+        // **Paso 5:** Verificar que el ganador de la ronda 1 pueda reclamar su premio
+        address winnerRound1 = raffle.getTicketOwner(
+            winningNumbersRound1[0],
+            1
+        );
+
+        vm.startPrank(winnerRound1);
+        raffle.claim();
+        uint256 expectedOPPrize = 3 * 10 ** 18; // Premio OP esperado
+        uint256 expectedETHPrize = 3 ether; // Premio ETH esperado
+        assertEq(
+            _opToken.balanceOf(winnerRound1),
+            expectedOPPrize,
+            "El ganador de la ronda 1 deberia recibir tokens OP"
+        );
+        assertEq(
+            winnerRound1.balance,
+            expectedETHPrize,
+            "El ganador de la ronda 1 deberia recibir ETH"
+        );
+        vm.stopPrank();
+
+        // **Paso 6:** Verificar que el participante de la ronda 2 no pueda reclamar premio
+        vm.startPrank(testUser2);
+        raffle.claim();
+        assertEq(
+            _opToken.balanceOf(testUser2),
+            0,
+            "El participante de la ronda 2 no deberia recibir tokens OP"
+        );
+        assertEq(
+            testUser2.balance,
+            0,
+            "El participante de la ronda 2 no deberia recibir ETH"
+        );
+        vm.stopPrank();
     }
 }

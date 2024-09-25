@@ -20,16 +20,15 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     uint256 public protocolFee;
     uint256 public immutable BPS = 10_000;
     uint256 public maxAmountTickets = 250;
-    mapping(uint256 => RoundPrize) public roundPrizes;
     mapping(uint256 => WinningLogic) private winningLogic;
     mapping(uint256 => RaffleRound) public raffleRounds;
     struct RaffleRound {
         uint256 ticketsSold;
+        RoundPrize roundPrizes;
         mapping(address => uint256) ticketsPerWallet;
-        mapping(address => uint256) winningClaimed;
+        mapping(address => bool) winningClaimed;
         mapping(uint256 => address) ticketOwners;
         uint256[] winningNumbers;
-        bool winningsClaimed;
     }
 
     constructor(
@@ -52,22 +51,18 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         return _roundsSinceStart();
     }
 
-    function enterRaffle(
-        uint256 _numberOfTickets,
-        address user
-    ) external whenNotPaused {
+    function enterRaffle(uint256 _numberOfTickets) external whenNotPaused {
         if (
             ISuperchainModule(superchainModule)
-                .getSuperChainAccount(user)
+                .getSuperChainAccount(msg.sender)
                 .smartAccount == address(0)
         ) {
             revert SuperchainRaffle__SenderIsNotSCSA();
         }
-        require(user == msg.sender, "SuperChainSmartAccount: Wrong user");
 
         uint256 round = _roundsSinceStart();
         RaffleRound storage currentRound = raffleRounds[round];
-        uint256 ticketsRemaining = freeTicketsRemaining(user);
+        uint256 ticketsRemaining = freeTicketsRemaining(msg.sender);
 
         if (_numberOfTickets > ticketsRemaining) {
             revert SuperchainRaffle__NotEnoughFreeTickets();
@@ -78,7 +73,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
         currentRound.ticketsPerWallet[msg.sender] += _numberOfTickets;
         for (uint256 i = 0; i < _numberOfTickets; i++) {
-            currentRound.ticketOwners[currentRound.ticketsSold + i] = msg.sender;
+            currentRound.ticketOwners[currentRound.ticketsSold + i] = msg
+                .sender;
         }
         currentRound.ticketsSold += _numberOfTickets;
 
@@ -117,19 +113,48 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function raffle() external whenNotPaused {
-        uint256 round = _roundsSinceStart() - 1;
-        RaffleRound storage currentRound = raffleRounds[round];
-        for (round; round > 0; round--) {
-            if (currentRound.winningNumbers.length == 0) {
-                uint256 ticketsSold = currentRound.ticketsSold;
+        uint256 currentRound = _roundsSinceStart() - 1;
+        uint256 lastUnclaimedRound = 0;
 
-                if (ticketsSold == 1)
-                    currentRound.winningNumbers.push(0);
+        for (uint256 round = 0; round <= currentRound; round++) {
+            if (raffleRounds[round].winningNumbers.length == 0) {
+                lastUnclaimedRound = round;
+                break;
+            }
+        }
+
+        for (uint256 round = lastUnclaimedRound; round <= currentRound; round++) {
+            RaffleRound storage currentRaffleRound = raffleRounds[round];
+            if (currentRaffleRound.winningNumbers.length != 0) continue;
+
+            uint256 ticketsSold = currentRaffleRound.ticketsSold;
+            uint256 ethPrize = currentRaffleRound.roundPrizes.EthAmount;
+            uint256 opPrize = currentRaffleRound.roundPrizes.OpAmount;
+
+            if (ethPrize == 0 && opPrize == 0) {
+                continue;
+            }
+
+            if (ticketsSold == 0) {
+                uint256 nextRound = round + 1;
+                if (nextRound <= currentRound + 1) {
+                    RaffleRound storage nextRaffleRound = raffleRounds[nextRound];
+                    nextRaffleRound.roundPrizes.EthAmount += ethPrize;
+                    nextRaffleRound.roundPrizes.OpAmount += opPrize;
+                    currentRaffleRound.roundPrizes.EthAmount = 0;
+                    currentRaffleRound.roundPrizes.OpAmount = 0;
+                }
+                continue;
+            }
+
+            if (ticketsSold == 1) {
+                currentRaffleRound.winningNumbers.push(0);
+            } else {
                 IRandomizerWrapper(randomizerWrapper).requestRandomNumber(
                     address(this),
                     round
                 );
-            } else break;
+            }
         }
     }
 
@@ -149,12 +174,19 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     ) external payable whenNotPaused {
         uint256 EthAmount = msg.value;
         _transferOP(address(this), OpAmount);
-        uint256 currentRound = _roundsSinceStart();
-        for (uint256 i = currentRound; i < currentRound + rounds; i++) {
-            roundPrizes[i].EthAmount += (EthAmount / rounds);
-            roundPrizes[i].OpAmount += (OpAmount / rounds);
+        uint256 _currentRound = _roundsSinceStart();
+        for (uint256 i = _currentRound; i < _currentRound + rounds; i++) {
+            RaffleRound storage currentRound = raffleRounds[i];
+            currentRound.roundPrizes.EthAmount += (EthAmount / rounds);
+            currentRound.roundPrizes.OpAmount += (OpAmount / rounds);
             emit RaffleFunded(i, EthAmount / rounds, OpAmount / rounds);
         }
+    }
+    function getTicketOwner(
+        uint256 ticketId,
+        uint256 round
+    ) external view returns (address) {
+        return raffleRounds[round].ticketOwners[ticketId];
     }
 
     function setMaxAmountTicketsPerRound(
@@ -223,6 +255,19 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         return raffleRounds[round].ticketsSold;
     }
 
+    function getWinningNumbers(
+        uint256 round
+    ) external view returns (uint256[] memory) {
+        return raffleRounds[round].winningNumbers;
+    }
+    function getRoundPrizes(
+        uint256 _round
+    ) external view returns (uint256 EthAmount, uint256 OpAmount) {
+        RaffleRound storage currentRound = raffleRounds[_round];
+        EthAmount = currentRound.roundPrizes.EthAmount;
+        OpAmount = currentRound.roundPrizes.OpAmount;
+    }
+
     function totalRoundsPlayed(
         address _user,
         uint256 _startRound,
@@ -231,7 +276,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         if (_endRound > roundsSinceStart() - 1)
             revert SuperchainRaffle__InvalidEndRound();
         for (_startRound; _startRound <= _endRound; _startRound++) {
-            if (raffleRounds[_startRound].ticketsPerWallet[_user] != 0) roundsPlayed++;
+            if (raffleRounds[_startRound].ticketsPerWallet[_user] != 0)
+                roundsPlayed++;
         }
     }
 
@@ -241,15 +287,13 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 round = (_roundsSinceStart() - 1);
         for (round; round > 0; round--) {
             RaffleRound storage currentRound = raffleRounds[round];
-            if (currentRound.winningsClaimed) break;
+            if (currentRound.winningClaimed[user]) break;
             if (currentRound.winningNumbers.length != 0) {
                 uint256[] memory winningTickets = currentRound.winningNumbers;
                 uint256 nOfWinningTickets = winningTickets.length;
                 WinningLogic memory logic = winningLogic[nOfWinningTickets];
                 for (uint256 i; i < nOfWinningTickets; ++i) {
-                    if (
-                        currentRound.ticketOwners[winningTickets[i]] == user
-                    ) {
+                    if (currentRound.ticketOwners[winningTickets[i]] == user) {
                         amountETH += _getETHAmount(
                             logic.payoutPercentage[i],
                             round
@@ -260,7 +304,9 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                         );
                     }
                 }
-                currentRound.winningsClaimed = amountETH != 0 ? true : false;
+                if (amountETH != 0 || amountOP != 0) {
+                    currentRound.winningClaimed[user] = true;
+                }
             }
         }
     }
@@ -270,9 +316,10 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     ) internal view returns (uint256 amountETH, uint256 amountOP) {
         uint256 round = (_roundsSinceStart() - 1);
         for (round; round > 0; round--) {
-            if (raffleRounds[round].winningClaimed[user] != 0) break;
+            if (raffleRounds[round].winningClaimed[user]) break;
             if (raffleRounds[round].winningNumbers.length != 0) {
-                uint256[] memory winningTickets = raffleRounds[round].winningNumbers;
+                uint256[] memory winningTickets = raffleRounds[round]
+                    .winningNumbers;
                 uint256 nOfWinningTickets = winningTickets.length;
                 WinningLogic memory logic = winningLogic[nOfWinningTickets];
                 for (uint256 i; i < nOfWinningTickets; ++i) {
@@ -326,7 +373,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        uint256 totalEthCollected = roundPrizes[_round].EthAmount;
+        RaffleRound storage currentRound = raffleRounds[_round];
+        uint256 totalEthCollected = currentRound.roundPrizes.EthAmount;
         if (totalEthCollected == 0) return 0;
         uint256 protocolFeeAmount = protocolFee == 0
             ? 0
@@ -340,7 +388,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        uint256 totalOPCollected = roundPrizes[_round].OpAmount;
+        RaffleRound storage currentRound = raffleRounds[_round];
+        uint256 totalOPCollected = currentRound.roundPrizes.OpAmount;
         if (totalOPCollected == 0) return 0;
         return ((totalOPCollected * _percentage) / BPS);
     }

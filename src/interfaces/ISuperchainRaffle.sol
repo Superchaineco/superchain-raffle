@@ -64,7 +64,7 @@ interface ISuperchainRaffle {
     // --------------------------
     function roundsSinceStart() external view returns (uint256);
 
-    function enterRaffle(uint256 _numberOfTickets, address user) external;
+    function enterRaffle(uint256 _numberOfTickets) external;
 
     function freeTicketsRemaining(address user) external view returns (uint256);
 

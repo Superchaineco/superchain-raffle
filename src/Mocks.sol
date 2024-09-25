@@ -4,8 +4,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {GelatoVRFConsumerBase} from "vrf-contracts/GelatoVRFConsumerBase.sol";
 import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import  "./interfaces/ISuperchainModule.sol";
+import "./interfaces/ISuperchainModule.sol";
 import {ISuperchainRaffle} from "./interfaces/ISuperchainRaffle.sol";
+import "forge-std/console.sol";
 
 contract MockRandomizerWrapper is
     IRandomizerWrapper,
@@ -36,11 +37,11 @@ contract MockRandomizerWrapper is
         address _raffle,
         uint256 _round
     ) external onlyWhitelistedRaffle {
-        uint256 requestId = _requestRandomness(abi.encode(_round));
+        uint256 requestId = uint256(keccak256(abi.encode(_round, block.timestamp)));
         requestIdToRaffleAddress[requestId] = _raffle;
         _fulfillRandomness(
             uint256(keccak256(abi.encode(block.timestamp, 100))),
-            1,
+            requestId,
             abi.encode(_round)
         );
     }
@@ -71,6 +72,12 @@ contract MockRandomizerWrapper is
     function _setBeneficiary(address _beneficiary) internal {
         beneficiary = _beneficiary;
     }
+    function setWhitelistedRaffle(
+        address _raffle,
+        bool _whitelisted
+    ) external onlyOwner {
+        raffleWhitelisted[_raffle] = _whitelisted;
+    }
 
     receive() external payable {}
 }
@@ -87,6 +94,7 @@ contract MockSuperchainModule {
     function superChainAccount(
         address account
     ) external view returns (Account memory) {
+        
         return
             Account({
                 smartAccount: account,
