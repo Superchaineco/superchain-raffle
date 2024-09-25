@@ -19,11 +19,12 @@ interface ISuperchainRaffle {
     // Events
     // --------------------------
     event TicketsPurchased(
-        address indexed buyer,
-        uint256 startingTicketNumber,
-        uint256 numberOfTicketsBought,
-        uint256 indexed round
+        address indexed user,
+        uint256 ticketsSold,
+        uint256 numberOfTickets,
+        uint256 round
     );
+    event Claim(address indexed user, uint256 amountETH, uint256 amountOP);
     event RaffleFunded(
         uint256 indexed round,
         uint256 ethAmount,
@@ -35,7 +36,6 @@ interface ISuperchainRaffle {
         uint256 ticketsSold,
         uint256[] winningTickets
     );
-    event Claim(address indexed user, uint256 amountEth, uint256 amountOp);
 
     // --------------------------
     // Errors
@@ -58,4 +58,60 @@ interface ISuperchainRaffle {
     error SuperchainRaffle__InvalidEndRound();
     error SuperchainRaffle__SenderIsNotSCSA();
     error SuperchainRaffle__MaxNumberOfTicketsReached();
+
+    // --------------------------
+    // Functions
+    // --------------------------
+    function roundsSinceStart() external view returns (uint256);
+
+    function enterRaffle(uint256 _numberOfTickets, address user) external;
+
+    function freeTicketsRemaining(address user) external view returns (uint256);
+
+    function claimFor(address user) external;
+
+    function claim() external;
+
+    function raffle() external;
+
+    function canRaffle() external view returns (bool isRaffleable);
+
+    function fundRaffle(uint256 rounds, uint256 OpAmount) external payable;
+
+    function setMaxAmountTicketsPerRound(uint256 _amountTickets) external;
+
+    function setURI(string memory _uri) external;
+
+    function setBeneficiary(address _beneficiary) external;
+
+    function setSuperchainModule(address _newSuperchainModule) external;
+
+    function setStartTime(uint256 _timeStamp) external;
+
+    function pause() external;
+
+    function unpause() external;
+
+    function withdraw(uint256 _amountEth, uint256 _amountOp) external;
+
+    function getClaimableAmounts(
+        address user
+    ) external view returns (uint256, uint256);
+
+    function getUserTicketsPerRound(
+        address user,
+        uint256 round
+    ) external view returns (uint256);
+
+    function getTotalTicketsPerRound(
+        uint256 round
+    ) external view returns (uint256);
+
+    function totalRoundsPlayed(
+        address _user,
+        uint256 _startRound,
+        uint256 _endRound
+    ) external view returns (uint256 roundsPlayed);
+
+    function randomizerCallback(uint256 _round, uint256 randomness) external;
 }
