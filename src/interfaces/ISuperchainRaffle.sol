@@ -6,13 +6,23 @@ interface ISuperchainRaffle {
     // Structs
     // --------------------------
     struct WinningLogic {
-        uint256[] superchainRafflePoints;
         uint256[] payoutPercentage;
     }
 
     struct RoundPrize {
         uint256 OpAmount;
         uint256 EthAmount;
+    }
+    struct RandomValueThreshold {
+        uint256 ticketThreshold;
+        uint256 randomValues;
+    }
+
+    struct Winner {
+        uint256 ticketNumber;
+        address user;
+        uint256 opAmount;
+        uint256 ethAmount;
     }
 
     // --------------------------
@@ -30,12 +40,16 @@ interface ISuperchainRaffle {
         uint256 ethAmount,
         uint256 opAmount
     );
+    event RaffleFundMoved(uint256 indexed roundFrom, uint256 indexed roundTo);
     event RaffleStarted(uint256 timestamp);
     event RoundWinners(
         uint256 indexed round,
         uint256 ticketsSold,
-        uint256[] winningTickets
+        Winner[] winners
     );
+    event URIChanged(string uri);
+    event FreeTicketsPerLevelChanged(uint256[] freeTicketsPerLevel);
+
 
     // --------------------------
     // Errors
@@ -58,7 +72,7 @@ interface ISuperchainRaffle {
     error SuperchainRaffle__InvalidEndRound();
     error SuperchainRaffle__SenderIsNotSCSA();
     error SuperchainRaffle__MaxNumberOfTicketsReached();
-
+    error SuperchainRaffle__OnlyRandomizerWrapper();
     // --------------------------
     // Functions
     // --------------------------
@@ -103,7 +117,7 @@ interface ISuperchainRaffle {
         uint256 round
     ) external view returns (uint256);
 
-    function getTotalTicketsPerRound(
+    function getTicketsSoldPerRound(
         uint256 round
     ) external view returns (uint256);
 

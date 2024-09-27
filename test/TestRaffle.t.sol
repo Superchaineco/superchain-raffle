@@ -7,6 +7,7 @@ import {SuperchainRaffle} from "../src/SuperchainRaffle.sol";
 import {MockRandomizerWrapper} from "../src/Mocks.sol";
 import {MockSuperchainModule} from "../src/Mocks.sol";
 import {MockERC20} from "../src/Mocks.sol";
+import {ISuperchainRaffle} from "../src/interfaces/ISuperchainRaffle.sol";
 
 contract TestRaffle is Test {
     SuperchainRaffle raffle;
@@ -70,7 +71,9 @@ contract TestRaffle is Test {
         _payoutPercentage[1] = c;
         payoutPercentage = _payoutPercentage;
 
-
+        ISuperchainRaffle.RandomValueThreshold[] memory _randomValueThresholds = new ISuperchainRaffle.RandomValueThreshold[](2);
+        _randomValueThresholds[0] = ISuperchainRaffle.RandomValueThreshold(10, 1);
+        _randomValueThresholds[1] = ISuperchainRaffle.RandomValueThreshold(100, 10);
         // Definir el beneficiario
         address _beneficiary = address(this);
 
@@ -89,6 +92,7 @@ contract TestRaffle is Test {
             address(mockSuperchainModule),
             address(mockRandomizerWrapper)
         );
+        raffle.setRandomValueThresholds(_randomValueThresholds);
 
         mockRandomizerWrapper.setWhitelistedRaffle(address(raffle), true);
 
@@ -148,7 +152,7 @@ contract TestRaffle is Test {
             "Free tickets remaining not updated"
         );
         assertEq(
-            raffle.getTotalTicketsPerRound(raffle.roundsSinceStart()),
+            raffle.getTicketsSoldPerRound(raffle.roundsSinceStart()),
             1,
             "Tickets sold not updated"
         );
@@ -163,7 +167,7 @@ contract TestRaffle is Test {
         testFreeTickets();
         vm.warp(block.timestamp + 1 weeks + 1 days);
         assertEq(
-            raffle.getTotalTicketsPerRound(1),
+            raffle.getTicketsSoldPerRound(1),
             1,
             "Tickets sold not updated"
         );

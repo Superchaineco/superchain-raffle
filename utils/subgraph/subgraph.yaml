@@ -5,35 +5,12 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum
-    name: SuperchainRaffleFactory
-    network: optimism
-    source:
-      address: "0xbf91637141577Ee5DB0c9Df84f72811573ec130B"
-      abi: SuperchainRaffleFactory
-      startBlock: 125017421
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - OwnershipTransferred
-        - SuperchainRaffleCreated
-      abis:
-        - name: SuperchainRaffleFactory
-          file: ./abis/SuperchainRaffleFactory.json
-      eventHandlers:
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: SuperchainRaffleCreated(address,string)
-          handler: handleSuperchainRaffleCreated
-      file: ./src/superchain-raffle-factory.ts
-  - kind: ethereum
     name: SuperChainRaffle
-    network: optimism
+    network: sepolia
     source:
-      address: "0x8275Ec8b78b0Dfa1D9d905259F0711eF997587B2"
       abi: SuperChainRaffle
-      startBlock: 125017421
+      address: '0x95c49473cF7d911c4D6770f8e91A2B95a97627b6'
+      startBlock: 6759484
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -42,8 +19,7 @@ dataSources:
         - Claim
         - SuperChainRaffleOwnershipTransferred
         - Paused
-        - RoundWinners
-        - TicketsPurchased
+        - RoundWinner
         - Unpaused
         - Raffle
         - Round
@@ -53,18 +29,21 @@ dataSources:
       eventHandlers:
         - event: Claim(indexed address,uint256,uint256)
           handler: handleClaim
+        - event: Paused(address)
+          handler: handlePaused
+        - event: RoundWinners(indexed uint256,uint256,(uint256,address,uint256,uint256)[])
+          handler: handleRoundWinners
+        - event: TicketsPurchased(indexed address,uint256,uint256,uint256)
+          handler: handleTicketsPurchased
+        - event: Unpaused(address)
+          handler: handleUnpaused
         - event: RaffleStarted(uint256)
           handler: handleRaffleStarted
         - event: RaffleFunded(indexed uint256,uint256,uint256)
           handler: handleRaffleFunded
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
-        - event: Paused(address)
-          handler: handlePaused
-        - event: RoundWinners(indexed uint256,uint256,uint256[])
-          handler: handleRoundWinners
-        - event: TicketsPurchased(indexed address,uint256,uint256,indexed uint256)
-          handler: handleTicketsPurchased
-        - event: Unpaused(address)
-          handler: handleUnpaused
+        - event: URIChanged(string)
+          handler: handleURIChanged
+        - event: RaffleFundMoved(indexed uint256,indexed uint256)
+          handler: handleRaffleFundMoved
+
       file: ./src/super-chain-raffle.ts

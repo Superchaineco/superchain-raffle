@@ -1,641 +1,804 @@
-[
-  {
-    "type": "constructor",
-    "inputs": [
-      {
-        "name": "_numberOfWinners",
-        "type": "uint256[]",
-        "internalType": "uint256[]"
-      },
-      {
-        "name": "_payoutPercentage",
-        "type": "uint256[][]",
-        "internalType": "uint256[][]"
-      },
-      {
-        "name": "_beneficiary",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_opToken", "type": "address", "internalType": "address" },
-      {
-        "name": "_superchainModule",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_fee", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "BPS",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "beneficiary",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "canRaffle",
-    "inputs": [],
-    "outputs": [
-      { "name": "isRaffleable", "type": "bool", "internalType": "bool" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "claim",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimFor",
-    "inputs": [
-      { "name": "user", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "enterRaffle",
-    "inputs": [
-      {
-        "name": "_numberOfTickets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "freeTicketsRemaining",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "fundRaffle",
-    "inputs": [
-      { "name": "rounds", "type": "uint256", "internalType": "uint256" },
-      { "name": "OpAmount", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [],
-    "stateMutability": "payable"
-  },
-  {
-    "type": "function",
-    "name": "getClaimableAmounts",
-    "inputs": [
-      { "name": "user", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [
-      { "name": "", "type": "uint256", "internalType": "uint256" },
-      { "name": "", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getTotalTicketsPerRound",
-    "inputs": [
-      { "name": "round", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getUserTicketsPerRound",
-    "inputs": [
-      { "name": "user", "type": "address", "internalType": "address" },
-      { "name": "round", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "getWinningTicketsByRound",
-    "inputs": [
-      { "name": "_round", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [
-      { "name": "", "type": "uint256[]", "internalType": "uint256[]" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "mainnetRandomizedWrapper",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "maxAmountTickets",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "opToken",
-    "inputs": [],
-    "outputs": [
-      { "name": "", "type": "address", "internalType": "contract IERC20" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "owner",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "pause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "paused",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "protocolFee",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "raffle",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "randomizerFeePaidForRound",
-    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "randomizerWrapper",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "renounceOwnership",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "roundPrizes",
-    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [
-      { "name": "OpAmount", "type": "uint256", "internalType": "uint256" },
-      { "name": "EthAmount", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "roundsSinceStart",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "setBeneficiary",
-    "inputs": [
-      { "name": "_beneficiary", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setMaxAmountTicketsPerRound",
-    "inputs": [
-      {
-        "name": "_amountTickets",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setProtocolFee",
-    "inputs": [
-      { "name": "_fee", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setRandomizerWrapper",
-    "inputs": [
-      {
-        "name": "_newRandomizerWrapper",
-        "type": "address",
-        "internalType": "address"
-      },
-      { "name": "_mainnetWrapper", "type": "bool", "internalType": "bool" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setStartTime",
-    "inputs": [
-      { "name": "_timeStamp", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "setURI",
-    "inputs": [{ "name": "_uri", "type": "string", "internalType": "string" }],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "startTime",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "superchainModule",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ticketPerAddressPerRound",
-    "inputs": [
-      { "name": "", "type": "uint256", "internalType": "uint256" },
-      { "name": "", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ticketsPerWallet",
-    "inputs": [
-      { "name": "", "type": "uint256", "internalType": "uint256" },
-      { "name": "", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "ticketsSoldPerRound",
-    "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "totalRoundsPlayed",
-    "inputs": [
-      { "name": "_user", "type": "address", "internalType": "address" },
-      { "name": "_startRound", "type": "uint256", "internalType": "uint256" },
-      { "name": "_endRound", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [
-      { "name": "roundsPlayed", "type": "uint256", "internalType": "uint256" }
-    ],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "transferOwnership",
-    "inputs": [
-      { "name": "newOwner", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "unpause",
-    "inputs": [],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "uri",
-    "inputs": [],
-    "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "winningClaimed",
-    "inputs": [
-      { "name": "", "type": "uint256", "internalType": "uint256" },
-      { "name": "", "type": "address", "internalType": "address" }
-    ],
-    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
-    "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "withdraw",
-    "inputs": [
-      { "name": "_amountEth", "type": "uint256", "internalType": "uint256" },
-      { "name": "_amountOp", "type": "uint256", "internalType": "uint256" }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "event",
-    "name": "Claim",
-    "inputs": [
-      {
-        "name": "user",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amountEth",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "amountOp",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "OwnershipTransferred",
-    "inputs": [
-      {
-        "name": "previousOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "newOwner",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "Paused",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RaffleFunded",
-    "inputs": [
-      {
-        "name": "round",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "ethAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "opAmount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RaffleStarted",
-    "inputs": [
-      {
-        "name": "timestamp",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "RoundWinners",
-    "inputs": [
-      {
-        "name": "round",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      },
-      {
-        "name": "ticketsSold",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "winningTickets",
-        "type": "uint256[]",
-        "indexed": false,
-        "internalType": "uint256[]"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "TicketsPurchased",
-    "inputs": [
-      {
-        "name": "buyer",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "startingTicketNumber",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "numberOfTicketsBought",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      },
-      {
-        "name": "round",
-        "type": "uint256",
-        "indexed": true,
-        "internalType": "uint256"
-      }
-    ],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "Unpaused",
-    "inputs": [
-      {
-        "name": "account",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  { "type": "error", "name": "EnforcedPause", "inputs": [] },
-  { "type": "error", "name": "EthTransferFailed", "inputs": [] },
-  { "type": "error", "name": "ExpectedPause", "inputs": [] },
-  { "type": "error", "name": "InvalidAddressInput", "inputs": [] },
-  { "type": "error", "name": "InvalidEtherAmount", "inputs": [] },
-  { "type": "error", "name": "InvalidRandomNumber", "inputs": [] },
-  { "type": "error", "name": "MaxPlayersReached", "inputs": [] },
-  { "type": "error", "name": "MaxTicketsBoughtForRound", "inputs": [] },
-  {
-    "type": "error",
-    "name": "OwnableInvalidOwner",
-    "inputs": [
-      { "name": "owner", "type": "address", "internalType": "address" }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "OwnableUnauthorizedAccount",
-    "inputs": [
-      { "name": "account", "type": "address", "internalType": "address" }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRafflePointsTransferFailed",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__FailedToSentEther",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__FailedToSentOp",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__InvalidEndRound",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__MaxNumberOfTicketsReached",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__NotEnoughEtherInContract",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__NotEnoughEtherSend",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__NotEnoughFreeTickets",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__NotEnoughOpInContract",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__NotSponsoredRaffle",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__SenderIsNotSCSA",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "SuperchainRaffle__SuperchainRaffleNotStartedYet",
-    "inputs": []
-  }
-]
+ [
+    {
+      "type": "constructor",
+      "inputs": [
+        {
+          "name": "_numberOfWinners",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        },
+        {
+          "name": "_payoutPercentage",
+          "type": "uint256[][]",
+          "internalType": "uint256[][]"
+        },
+        {
+          "name": "_beneficiary",
+          "type": "address",
+          "internalType": "address"
+        },
+        { "name": "_opToken", "type": "address", "internalType": "address" },
+        {
+          "name": "_superchainModule",
+          "type": "address",
+          "internalType": "address"
+        },
+        {
+          "name": "_randomizerWrapper",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "BPS",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "beneficiary",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "canRaffle",
+      "inputs": [],
+      "outputs": [
+        { "name": "isRaffleable", "type": "bool", "internalType": "bool" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "claim",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "claimFor",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "enterRaffle",
+      "inputs": [
+        {
+          "name": "_numberOfTickets",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "freeTicketsPerLevel",
+      "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "freeTicketsRemaining",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "fundRaffle",
+      "inputs": [
+        { "name": "rounds", "type": "uint256", "internalType": "uint256" },
+        { "name": "OpAmount", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "payable"
+    },
+    {
+      "type": "function",
+      "name": "getClaimableAmounts",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [
+        { "name": "", "type": "uint256", "internalType": "uint256" },
+        { "name": "", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getRoundPrizes",
+      "inputs": [
+        { "name": "_round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "EthAmount", "type": "uint256", "internalType": "uint256" },
+        { "name": "OpAmount", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getTicketOwner",
+      "inputs": [
+        { "name": "ticketId", "type": "uint256", "internalType": "uint256" },
+        { "name": "round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getTicketsSoldPerRound",
+      "inputs": [
+        { "name": "round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getUserTicketsPerRound",
+      "inputs": [
+        { "name": "user", "type": "address", "internalType": "address" },
+        { "name": "round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "getWinningNumbers",
+      "inputs": [
+        { "name": "round", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "", "type": "uint256[]", "internalType": "uint256[]" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "mainnetRandomizedWrapper",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "maxAmountTickets",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "opToken",
+      "inputs": [],
+      "outputs": [
+        { "name": "", "type": "address", "internalType": "contract IERC20" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "owner",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "pause",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "paused",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "protocolFee",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "raffle",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "raffleRounds",
+      "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "outputs": [
+        { "name": "ticketsSold", "type": "uint256", "internalType": "uint256" },
+        {
+          "name": "roundPrizes",
+          "type": "tuple",
+          "internalType": "struct ISuperchainRaffle.RoundPrize",
+          "components": [
+            {
+              "name": "OpAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "EthAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "randomValueThresholds",
+      "inputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "outputs": [
+        {
+          "name": "ticketThreshold",
+          "type": "uint256",
+          "internalType": "uint256"
+        },
+        { "name": "randomValues", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "randomizerCallback",
+      "inputs": [
+        { "name": "_round", "type": "uint256", "internalType": "uint256" },
+        { "name": "randomness", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "randomizerWrapper",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "renounceOwnership",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "roundsSinceStart",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "setBeneficiary",
+      "inputs": [
+        { "name": "_beneficiary", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setFreeTicketsPerLevel",
+      "inputs": [
+        {
+          "name": "_freeTicketsPerLevel",
+          "type": "uint256[]",
+          "internalType": "uint256[]"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setMaxAmountTicketsPerRound",
+      "inputs": [
+        {
+          "name": "_amountTickets",
+          "type": "uint256",
+          "internalType": "uint256"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setProtocolFee",
+      "inputs": [
+        { "name": "_fee", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setRandomValueThresholds",
+      "inputs": [
+        {
+          "name": "_randomValueThresholds",
+          "type": "tuple[]",
+          "internalType": "struct ISuperchainRaffle.RandomValueThreshold[]",
+          "components": [
+            {
+              "name": "ticketThreshold",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "randomValues",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setStartTime",
+      "inputs": [
+        { "name": "_timeStamp", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setSuperchainModule",
+      "inputs": [
+        {
+          "name": "_newSuperchainModule",
+          "type": "address",
+          "internalType": "address"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "setURI",
+      "inputs": [
+        { "name": "_uri", "type": "string", "internalType": "string" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "startTime",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "superchainModule",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "address", "internalType": "address" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "totalRoundsPlayed",
+      "inputs": [
+        { "name": "_user", "type": "address", "internalType": "address" },
+        { "name": "_startRound", "type": "uint256", "internalType": "uint256" },
+        { "name": "_endRound", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [
+        { "name": "roundsPlayed", "type": "uint256", "internalType": "uint256" }
+      ],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "transferOwnership",
+      "inputs": [
+        { "name": "newOwner", "type": "address", "internalType": "address" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "unpause",
+      "inputs": [],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "uri",
+      "inputs": [],
+      "outputs": [{ "name": "", "type": "string", "internalType": "string" }],
+      "stateMutability": "view"
+    },
+    {
+      "type": "function",
+      "name": "withdraw",
+      "inputs": [
+        { "name": "_amountEth", "type": "uint256", "internalType": "uint256" },
+        { "name": "_amountOp", "type": "uint256", "internalType": "uint256" }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "Claim",
+      "inputs": [
+        {
+          "name": "user",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "amountETH",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "amountOP",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "FreeTicketsPerLevelChanged",
+      "inputs": [
+        {
+          "name": "freeTicketsPerLevel",
+          "type": "uint256[]",
+          "indexed": false,
+          "internalType": "uint256[]"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "OwnershipTransferred",
+      "inputs": [
+        {
+          "name": "previousOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "newOwner",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Paused",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RaffleFundMoved",
+      "inputs": [
+        {
+          "name": "roundFrom",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "roundTo",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RaffleFunded",
+      "inputs": [
+        {
+          "name": "round",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "ethAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "opAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RaffleStarted",
+      "inputs": [
+        {
+          "name": "timestamp",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RoundPrizeDistribution",
+      "inputs": [
+        {
+          "name": "round",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "ethAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "opAmount",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "RoundWinners",
+      "inputs": [
+        {
+          "name": "round",
+          "type": "uint256",
+          "indexed": true,
+          "internalType": "uint256"
+        },
+        {
+          "name": "ticketsSold",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "winners",
+          "type": "tuple[]",
+          "indexed": false,
+          "internalType": "struct ISuperchainRaffle.Winner[]",
+          "components": [
+            {
+              "name": "ticketNumber",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            { "name": "user", "type": "address", "internalType": "address" },
+            {
+              "name": "opAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            },
+            {
+              "name": "ethAmount",
+              "type": "uint256",
+              "internalType": "uint256"
+            }
+          ]
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "TicketsPurchased",
+      "inputs": [
+        {
+          "name": "user",
+          "type": "address",
+          "indexed": true,
+          "internalType": "address"
+        },
+        {
+          "name": "ticketsSold",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "numberOfTickets",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        },
+        {
+          "name": "round",
+          "type": "uint256",
+          "indexed": false,
+          "internalType": "uint256"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "URIChanged",
+      "inputs": [
+        {
+          "name": "uri",
+          "type": "string",
+          "indexed": false,
+          "internalType": "string"
+        }
+      ],
+      "anonymous": false
+    },
+    {
+      "type": "event",
+      "name": "Unpaused",
+      "inputs": [
+        {
+          "name": "account",
+          "type": "address",
+          "indexed": false,
+          "internalType": "address"
+        }
+      ],
+      "anonymous": false
+    },
+    { "type": "error", "name": "EnforcedPause", "inputs": [] },
+    { "type": "error", "name": "EthTransferFailed", "inputs": [] },
+    { "type": "error", "name": "ExpectedPause", "inputs": [] },
+    { "type": "error", "name": "InvalidAddressInput", "inputs": [] },
+    { "type": "error", "name": "InvalidEtherAmount", "inputs": [] },
+    { "type": "error", "name": "InvalidRandomNumber", "inputs": [] },
+    { "type": "error", "name": "MaxPlayersReached", "inputs": [] },
+    { "type": "error", "name": "MaxTicketsBoughtForRound", "inputs": [] },
+    {
+      "type": "error",
+      "name": "OwnableInvalidOwner",
+      "inputs": [
+        { "name": "owner", "type": "address", "internalType": "address" }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "OwnableUnauthorizedAccount",
+      "inputs": [
+        { "name": "account", "type": "address", "internalType": "address" }
+      ]
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRafflePointsTransferFailed",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__FailedToSentEther",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__FailedToSentOp",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__InvalidEndRound",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__MaxNumberOfTicketsReached",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__NotEnoughEtherInContract",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__NotEnoughEtherSend",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__NotEnoughFreeTickets",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__NotEnoughOpInContract",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__NotSponsoredRaffle",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__OnlyRandomizerWrapper",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__SenderIsNotSCSA",
+      "inputs": []
+    },
+    {
+      "type": "error",
+      "name": "SuperchainRaffle__SuperchainRaffleNotStartedYet",
+      "inputs": []
+    }
+  ]

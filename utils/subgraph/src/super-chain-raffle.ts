@@ -1,25 +1,24 @@
-import { BigInt } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes } from "@graphprotocol/graph-ts";
 import {
   Claim as ClaimEvent,
-  OwnershipTransferred as OwnershipTransferredEvent,
   Paused as PausedEvent,
   RoundWinners as RoundWinnersEvent,
   TicketsPurchased as TicketsPurchasedEvent,
   Unpaused as UnpausedEvent,
   RaffleFunded as RaffleFundedEvent,
   RaffleStarted as RaffleStartedEvent,
+  URIChanged as URIChangedEvent,
+  RaffleFundMoved as RaffleFundMovedEvent,
 } from "../generated/SuperChainRaffle/SuperChainRaffle";
 import {
   Claim,
-  OwnershipTransferred,
   Paused,
-  RoundWinners,
-  TicketsPurchased,
   Unpaused,
   Raffle,
   Round,
   User,
   UserRoundTickets,
+  RoundWinner,
 } from "../generated/schema";
 
 export function handleRaffleFunded(event: RaffleFundedEvent): void {
@@ -44,23 +43,33 @@ export function handleRaffleStarted(event: RaffleStartedEvent): void {
   raffle.save();
 }
 
+export function handleURIChanged(event: URIChangedEvent): void {
+  let raffle = Raffle.load(event.address);
+  if (!raffle) {
+    raffle = new Raffle(event.address);
+    raffle.initTimestamp = new BigInt(0);
+  }
+  raffle.uri = event.params.uri;
+  raffle.save();
+}
+
 export function handleClaim(event: ClaimEvent): void {
   let entity = new Claim(
     event.transaction.hash.concatI32(event.logIndex.toI32()),
   );
   let user = User.load(event.params.user);
-  if(!user ){
+  if (!user) {
     user = new User(event.params.user)
-    user.opPrizes = event.params.amountOp
-    user.ethPrizes = event.params.amountEth
-  }else{
-    user.opPrizes = user.opPrizes.plus(event.params.amountOp);
-    user.ethPrizes = user.ethPrizes.plus(event.params.amountEth);
+    user.opPrizes = event.params.amountOP
+    user.ethPrizes = event.params.amountETH
+  } else {
+    user.opPrizes = user.opPrizes.plus(event.params.amountOP);
+    user.ethPrizes = user.ethPrizes.plus(event.params.amountETH);
   }
   user.save()
   entity.user = event.params.user;
-  entity.amountEth = event.params.amountEth;
-  entity.amountOp = event.params.amountOp;
+  entity.amountEth = event.params.amountOP;
+  entity.amountOp = event.params.amountETH;
 
   entity.blockNumber = event.block.number;
   entity.blockTimestamp = event.block.timestamp;
@@ -69,21 +78,6 @@ export function handleClaim(event: ClaimEvent): void {
   entity.save();
 }
 
-export function handleOwnershipTransferred(
-  event: OwnershipTransferredEvent,
-): void {
-  let entity = new OwnershipTransferred(
-    event.transaction.hash.concatI32(event.logIndex.toI32()),
-  );
-  entity.previousOwner = event.params.previousOwner;
-  entity.newOwner = event.params.newOwner;
-
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash;
-
-  entity.save();
-}
 
 export function handlePaused(event: PausedEvent): void {
   let entity = new Paused(
@@ -99,34 +93,35 @@ export function handlePaused(event: PausedEvent): void {
 }
 
 export function handleRoundWinners(event: RoundWinnersEvent): void {
-  let entity = new RoundWinners(
-    event.transaction.hash.concatI32(event.logIndex.toI32()),
-  );
-  entity.round = event.params.round;
-  entity.ticketsSold = event.params.ticketsSold;
-  entity.winningTickets = event.params.winningTickets;
+  let round = Round.load(event.params.round.toString());
+  if (!round) return;
 
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash;
+  let winners = event.params.winners;
+  for (let i = 0; i < winners.length; i++) {
+    let winner = winners[i];
 
-  entity.save();
+    let user = User.load(winner.user);
+    if (user) {
+      let winnerId = event.transaction.hash.toHex().concat(i.toString());
+      let roundWinner = new RoundWinner(Bytes.fromHexString(winnerId));
+      roundWinner.round = round.id;
+      roundWinner.user = user.id;
+      roundWinner.ticketNumber = winner.ticketNumber;
+
+
+
+      roundWinner.ethAmount = winner.ethAmount;
+      roundWinner.opAmount = winner.opAmount;
+
+
+      roundWinner.save();
+
+      user.save();
+    }
+  }
 }
 
 export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
-  let entity = new TicketsPurchased(
-    event.transaction.hash.concatI32(event.logIndex.toI32()),
-  );
-  entity.buyer = event.params.buyer;
-  entity.startingTicketNumber = event.params.startingTicketNumber;
-  entity.numberOfTicketsBought = event.params.numberOfTicketsBought;
-  entity.round = event.params.round;
-
-  entity.blockNumber = event.block.number;
-  entity.blockTimestamp = event.block.timestamp;
-  entity.transactionHash = event.transaction.hash;
-
-  entity.save();
   let round = Round.load(event.params.round.toString());
   if (!round) {
     round = new Round(event.params.round.toString());
@@ -137,17 +132,17 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     round.prizeEth = new BigInt(0);
   }
   round.ticketsSold = round.ticketsSold.plus(
-    event.params.numberOfTicketsBought,
+    event.params.numberOfTickets,
   );
   round.save();
-  let user = User.load(event.params.buyer);
+  let user = User.load(event.params.user);
   if (!user) {
-    user = new User(event.params.buyer);
+    user = new User(event.params.user);
     user.opPrizes = new BigInt(0);
     user.ethPrizes = new BigInt(0);
     user.save()
   }
-  let userRoundTicketsId = event.params.buyer.concatI32(
+  let userRoundTicketsId = event.params.user.concatI32(
     event.params.round.toI32(),
   );
   let userRoundTickets = UserRoundTickets.load(userRoundTicketsId);
@@ -156,15 +151,15 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     userRoundTickets = new UserRoundTickets(userRoundTicketsId);
     userRoundTickets.user = user.id;
     userRoundTickets.round = round.id;
-    userRoundTickets.numberOfTickets = event.params.numberOfTicketsBought;
+    userRoundTickets.numberOfTickets = event.params.numberOfTickets;
     userRoundTickets.ticketNumbers = [];
   } else {
     userRoundTickets.numberOfTickets = userRoundTickets.numberOfTickets.plus(
-      event.params.numberOfTicketsBought,
+      event.params.numberOfTickets,
     );
   }
-  let startingTicketNumber = event.params.startingTicketNumber;
-  for (let i = 0 ; i < event.params.numberOfTicketsBought.toI32(); i++) {
+  let startingTicketNumber = event.params.ticketsSold;
+  for (let i = 0; i < event.params.numberOfTickets.toI32(); i++) {
     let tickets = userRoundTickets.ticketNumbers;
     tickets.push(startingTicketNumber.plus(BigInt.fromI32(i)));
     userRoundTickets.ticketNumbers = tickets;
@@ -185,4 +180,15 @@ export function handleUnpaused(event: UnpausedEvent): void {
   entity.transactionHash = event.transaction.hash;
 
   entity.save();
+}
+
+
+export function handleRaffleFundMoved(event: RaffleFundMovedEvent): void {
+  let roundFrom = Round.load(event.params.roundFrom.toString());
+  let roundTo = Round.load(event.params.roundTo.toString());
+  if (!roundFrom || !roundTo) return;
+  roundTo.prizeOp = roundTo.prizeOp.plus(roundFrom.prizeOp);
+  roundTo.prizeEth = roundTo.prizeEth.plus(roundFrom.prizeEth);
+  roundFrom.prizeOp = new BigInt(0);
+  roundFrom.prizeEth = new BigInt(0);
 }

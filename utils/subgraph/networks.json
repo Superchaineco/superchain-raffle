@@ -1,12 +1,14 @@
 {
   "optimism": {
-    "SuperchainRaffleFactory": {
-      "address": "0xbf91637141577Ee5DB0c9Df84f72811573ec130B",
-      "startBlock": 125017421
-    },
     "SuperChainRaffle": {
       "address": "0x8275Ec8b78b0Dfa1D9d905259F0711eF997587B2",
       "startBlock": 125017421
+    }
+  },
+  "sepolia": {
+    "SuperChainRaffle": {
+      "address": "0x7997454073d9e80fd0b6FcD0308B9068C7522448",
+      "startBlock": 6759484
     }
   }
 }
