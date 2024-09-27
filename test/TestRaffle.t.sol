@@ -14,6 +14,8 @@ contract TestRaffle is Test {
     MockRandomizerWrapper mockRandomizerWrapper;
     MockSuperchainModule mockSuperchainModule;
     MockERC20 _opToken;
+
+    uint256[] _freeTicketsPerLevel = new uint256[](10);
     address testUser = vm.addr(1);
     address testUser2 = vm.addr(2);
     address testUser3 = vm.addr(3);
@@ -52,6 +54,10 @@ contract TestRaffle is Test {
         testUsers[12] = testUser13;
         testUsers[13] = testUser14;
         testUsers[14] = testUser15;
+     for (uint256 i = 0; i < 10; i++) {
+            _freeTicketsPerLevel[i] = 1;
+        }
+
 
         uint256[][] memory _payoutPercentage = new uint256[][](2);
         uint256[] memory a = new uint256[](1);
@@ -94,6 +100,7 @@ contract TestRaffle is Test {
         );
         raffle.setRandomValueThresholds(_randomValueThresholds);
 
+        raffle.setFreeTicketsPerLevel(_freeTicketsPerLevel);
         mockRandomizerWrapper.setWhitelistedRaffle(address(raffle), true);
 
         raffle.setStartTime(block.timestamp);

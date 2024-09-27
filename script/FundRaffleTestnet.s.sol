@@ -11,10 +11,10 @@ contract FundRaffle is Script {
     function setUp() public {}
     function run() public {
       vm.startBroadcast();
-      MockERC20 _opToken = MockERC20(0x306F0f79cD98a1448E94C9A3F996a1d6d5aE0626);
-      _opToken.approve(0x30282Cf294eD607B837fa539E8F16B3a14c2d2Ae, 1 * 10 ** 18);
-      SuperchainRaffle raffle = SuperchainRaffle(0x30282Cf294eD607B837fa539E8F16B3a14c2d2Ae);
-      raffle.fundRaffle{value: 1 ether}(2, 1 * 10 ** 18);
+      MockERC20 _opToken = MockERC20(0x9a0D7F73F297b1901e3bCBe052c52e383EeAef90);
+      _opToken.approve(0x7997454073d9e80fd0b6FcD0308B9068C7522448, 1 * 10 ** 18);
+      SuperchainRaffle raffle = SuperchainRaffle(payable(0x7997454073d9e80fd0b6FcD0308B9068C7522448));
+      raffle.fundRaffle{value: 0.1 ether}(1, 0.1 * 10 ** 18);
       vm.stopBroadcast();
       }
 }

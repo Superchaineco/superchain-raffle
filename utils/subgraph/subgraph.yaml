@@ -9,7 +9,7 @@ dataSources:
     network: sepolia
     source:
       abi: SuperChainRaffle
-      address: '0x95c49473cF7d911c4D6770f8e91A2B95a97627b6'
+      address: "0x7997454073d9e80fd0b6FcD0308B9068C7522448"
       startBlock: 6759484
     mapping:
       kind: ethereum/events
@@ -45,5 +45,4 @@ dataSources:
           handler: handleURIChanged
         - event: RaffleFundMoved(indexed uint256,indexed uint256)
           handler: handleRaffleFundMoved
-
       file: ./src/super-chain-raffle.ts
