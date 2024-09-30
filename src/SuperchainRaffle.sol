@@ -23,6 +23,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     mapping(uint256 => WinningLogic) private winningLogic;
     mapping(uint256 => RaffleRound) public raffleRounds;
     uint256[] public freeTicketsPerLevel;
+    uint256[] private winningLogicKeys;
     struct RaffleRound {
         uint256 ticketsSold;
         RoundPrize roundPrizes;
@@ -296,6 +297,25 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     ) external view returns (uint256[] memory) {
         return raffleRounds[round].winningNumbers;
     }
+
+    function getWinningLogic() external view returns (uint256[] memory, uint256[][] memory) {
+        uint256 length = winningLogicKeys.length;
+        uint256[] memory numberOfWinners = new uint256[](length);
+        uint256[][] memory payoutPercentages = new uint256[][](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            uint256 key = winningLogicKeys[i];
+            numberOfWinners[i] = key;
+            payoutPercentages[i] = winningLogic[key].payoutPercentage;
+        }
+
+        return (numberOfWinners, payoutPercentages);
+    }
+
+    function getFreeTicketsPerLevel() external view returns (uint256[] memory) {
+        return freeTicketsPerLevel;
+    }
+
     function getRoundPrizes(
         uint256 _round
     ) external view returns (uint256 EthAmount, uint256 OpAmount) {
@@ -320,6 +340,13 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         RandomValueThreshold[] memory _randomValueThresholds
     ) external onlyOwner {
         _setRandomValueThresholds(_randomValueThresholds); // Nueva función para actualizar los umbrales
+    }
+
+    function setWinningLogic(
+        uint256[] memory _numberOfWinners,
+        uint256[][] memory _payoutPercentage
+    ) external onlyOwner {
+        _setWinningLogic(_numberOfWinners, _payoutPercentage);
     }
 
     function setFreeTicketsPerLevel(
@@ -482,20 +509,19 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256[] memory _numberOfWinners,
         uint256[][] memory _payoutPercentage
     ) internal {
+        delete winningLogicKeys; // Clear the existing keys
         uint256 arrayLength = _numberOfWinners.length;
         for (uint256 i; i < arrayLength; ++i) {
-            WinningLogic storage logic = winningLogic[_numberOfWinners[i]];
-            if (
-                winningLogic[uint256(_numberOfWinners[i])]
-                    .payoutPercentage
-                    .length != 0
-            ) {
+            uint256 key = _numberOfWinners[i];
+            WinningLogic storage logic = winningLogic[key];
+            if (logic.payoutPercentage.length != 0) {
                 delete logic.payoutPercentage;
             }
             uint256 innerArrayLength = _payoutPercentage[i].length;
             for (uint256 j; j < innerArrayLength; ++j) {
-                logic.payoutPercentage.push(uint256(_payoutPercentage[i][j]));
+                logic.payoutPercentage.push(_payoutPercentage[i][j]);
             }
+            winningLogicKeys.push(key); // Add the key to the keys array
         }
     }
 
@@ -551,15 +577,10 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                 uint256 opPrize = (totalOpPrize *
                     winningLogic[numberOfRandomValues].payoutPercentage[i]) /
                     BPS;
-                address ticketOwner =  getTicketOwner(winningTicket, _round);
+                address ticketOwner = getTicketOwner(winningTicket, _round);
 
                 winners[i] = (
-                    Winner(
-                        winningTicket,
-                        ticketOwner,
-                        opPrize,
-                        ethPrize
-                    )
+                    Winner(winningTicket, ticketOwner, opPrize, ethPrize)
                 );
 
                 i++;
@@ -617,4 +638,6 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             randomValueThresholds[randomValueThresholds.length - 1]
                 .randomValues; // Valor por defecto si no se cumple ningún umbral
     }
+
+    // Add this state variable to keep track of the keys
 }

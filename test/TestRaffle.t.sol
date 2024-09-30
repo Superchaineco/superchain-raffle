@@ -54,10 +54,9 @@ contract TestRaffle is Test {
         testUsers[12] = testUser13;
         testUsers[13] = testUser14;
         testUsers[14] = testUser15;
-     for (uint256 i = 0; i < 10; i++) {
+        for (uint256 i = 0; i < 10; i++) {
             _freeTicketsPerLevel[i] = 1;
         }
-
 
         uint256[][] memory _payoutPercentage = new uint256[][](2);
         uint256[] memory a = new uint256[](1);
@@ -77,9 +76,18 @@ contract TestRaffle is Test {
         _payoutPercentage[1] = c;
         payoutPercentage = _payoutPercentage;
 
-        ISuperchainRaffle.RandomValueThreshold[] memory _randomValueThresholds = new ISuperchainRaffle.RandomValueThreshold[](2);
-        _randomValueThresholds[0] = ISuperchainRaffle.RandomValueThreshold(10, 1);
-        _randomValueThresholds[1] = ISuperchainRaffle.RandomValueThreshold(100, 10);
+        ISuperchainRaffle.RandomValueThreshold[]
+            memory _randomValueThresholds = new ISuperchainRaffle.RandomValueThreshold[](
+                2
+            );
+        _randomValueThresholds[0] = ISuperchainRaffle.RandomValueThreshold(
+            10,
+            1
+        );
+        _randomValueThresholds[1] = ISuperchainRaffle.RandomValueThreshold(
+            100,
+            10
+        );
         // Definir el beneficiario
         address _beneficiary = address(this);
 
@@ -221,7 +229,11 @@ contract TestRaffle is Test {
                 ((3 * 10 ** 18) * payoutPercentage[1][i]) / 10_000,
                 "OP tokens transferred"
             );
-            assertEq(winnerN.balance, (3 ether  * payoutPercentage[1][i]) / 10_000, "ETH transferred");
+            assertEq(
+                winnerN.balance,
+                (3 ether * payoutPercentage[1][i]) / 10_000,
+                "ETH transferred"
+            );
             vm.stopPrank();
         }
     }
@@ -232,9 +244,11 @@ contract TestRaffle is Test {
         raffle.raffle();
         // Verificar que no se hayan generado números ganadores
         for (uint256 i = 1; i <= 3; i++) {
-            (uint256 ethPrize, uint256 opPrize) = raffle.getRoundPrizes(raffle.roundsSinceStart());
-            assertEq(ethPrize, 9 ether , "ETH prize incorrect");
-            assertEq(opPrize, (9 * 10 ** 18) , "OP prize incorrect");
+            (uint256 ethPrize, uint256 opPrize) = raffle.getRoundPrizes(
+                raffle.roundsSinceStart()
+            );
+            assertEq(ethPrize, 9 ether, "ETH prize incorrect");
+            assertEq(opPrize, (9 * 10 ** 18), "OP prize incorrect");
             assertEq(
                 raffle.getWinningNumbers(i).length,
                 0,
@@ -567,5 +581,102 @@ contract TestRaffle is Test {
             "El participante de la ronda 2 no deberia recibir ETH"
         );
         vm.stopPrank();
+    }
+
+    function testSetWinningLogic() public {
+        uint256[] memory newNumberOfWinners = new uint256[](2);
+        newNumberOfWinners[0] = 2;
+        newNumberOfWinners[1] = 5;
+
+        uint256[][] memory newPayoutPercentage = new uint256[][](2);
+        uint256[] memory payout1 = new uint256[](2);
+        payout1[0] = 6000;
+        payout1[1] = 4000;
+        uint256[] memory payout2 = new uint256[](5);
+        payout2[0] = 3000;
+        payout2[1] = 2500;
+        payout2[2] = 2000;
+        payout2[3] = 1500;
+        payout2[4] = 1000;
+        newPayoutPercentage[0] = payout1;
+        newPayoutPercentage[1] = payout2;
+
+        raffle.setWinningLogic(newNumberOfWinners, newPayoutPercentage);
+
+        // Verificar que la lógica de ganada se ha actualizado correctamente
+        (uint256[] memory winners, uint256[][] memory payouts) = raffle
+            .getWinningLogic();
+        assertEq(
+            winners.length,
+            newNumberOfWinners.length,
+            "Numero de ganadores incorrecto"
+        );
+        for (uint256 i = 0; i < winners.length; i++) {
+            assertEq(
+                winners[i],
+                newNumberOfWinners[i],
+                "Numero de ganadores incorrecto en el indice"
+            );
+            for (uint256 j = 0; j < payouts[i].length; j++) {
+                assertEq(
+                    payouts[i][j],
+                    newPayoutPercentage[i][j],
+                    "Porcentaje de pago incorrecto en el indice"
+                );
+            }
+        }
+    }
+
+    function testSetFreeTicketsPerLevel() public {
+        uint256[] memory newFreeTicketsPerLevel = new uint256[](5);
+        newFreeTicketsPerLevel[0] = 2;
+        newFreeTicketsPerLevel[1] = 4;
+        newFreeTicketsPerLevel[2] = 6;
+        newFreeTicketsPerLevel[3] = 8;
+        newFreeTicketsPerLevel[4] = 10;
+
+        raffle.setFreeTicketsPerLevel(newFreeTicketsPerLevel);
+
+        // Verificar que la cantidad de tickets gratuitos se ha actualizado correctamente
+        uint256[] memory updatedFreeTicketsPerLevel = raffle
+            .getFreeTicketsPerLevel();
+        assertEq(
+            updatedFreeTicketsPerLevel.length,
+            newFreeTicketsPerLevel.length,
+            "Longitud de tickets gratuitos incorrecta"
+        );
+        for (uint256 i = 0; i < updatedFreeTicketsPerLevel.length; i++) {
+            assertEq(
+                updatedFreeTicketsPerLevel[i],
+                newFreeTicketsPerLevel[i],
+                "Cantidad de tickets gratuitos incorrecta en el ndice"
+            );
+        }
+    }
+
+    function testRandomizerCallbackNotExecuted() public {
+        vm.roll(10000000);
+        uint256 roundsToFund = 1;
+        uint256 ethAmount = 3 ether;
+        uint256 opAmount = 3 * 10 ** 18;
+        raffle.fundRaffle{value: ethAmount}(roundsToFund, opAmount);
+
+        vm.startPrank(testUser);
+        raffle.enterRaffle(1);
+        vm.stopPrank();
+        vm.startPrank(testUser2);
+        raffle.enterRaffle(1);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 1 weeks + 1 days);
+
+        raffle.raffle();
+
+        uint256[] memory winningNumbers = raffle.getWinningNumbers(raffle.roundsSinceStart() - 1);
+        console.log("winningNumbers", winningNumbers.length);
+        console.log("roundsSinceStart", raffle.roundsSinceStart());
+        console.log("block.number", block.number);
+        assertEq(winningNumbers.length, 0, "No se deberian haber generado numeros ganadores");
+
     }
 }

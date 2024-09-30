@@ -39,12 +39,14 @@ contract MockRandomizerWrapper is
     ) external onlyWhitelistedRaffle {
         uint256 requestId = uint256(keccak256(abi.encode(_round, block.timestamp)));
         requestIdToRaffleAddress[requestId] = _raffle;
+        if ( block.number > 100000) return;
         _fulfillRandomness(
             uint256(keccak256(abi.encode(block.timestamp, 100))),
             requestId,
             abi.encode(_round)
         );
     }
+
 
     function _fulfillRandomness(
         uint256 randomness,
