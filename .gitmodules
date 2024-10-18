@@ -7,3 +7,6 @@
 [submodule "lib/vrf-contracts"]
 	path = lib/vrf-contracts
 	url = https://github.com/gelatodigital/vrf-contracts
+[submodule "lib/openzeppelin-foundry-upgrades"]
+	path = lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
