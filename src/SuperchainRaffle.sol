@@ -181,6 +181,15 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
             if (ticketsSold == 1) {
                 currentRaffleRound.winningNumbers.push(0);
+                Winner[] memory winners = new Winner[](1);
+                winners[0] = Winner(
+                    0,
+                    currentRaffleRound.ticketOwners[0],
+                    opPrize,
+                    ethPrize
+                );
+
+                emit RoundWinners(round, ticketsSold, winners);
             } else {
                 IRandomizerWrapper(randomizerWrapper).requestRandomNumber(
                     address(this),
@@ -298,7 +307,11 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         return raffleRounds[round].winningNumbers;
     }
 
-    function getWinningLogic() external view returns (uint256[] memory, uint256[][] memory) {
+    function getWinningLogic()
+        external
+        view
+        returns (uint256[] memory, uint256[][] memory)
+    {
         uint256 length = winningLogicKeys.length;
         uint256[] memory numberOfWinners = new uint256[](length);
         uint256[][] memory payoutPercentages = new uint256[][](length);
