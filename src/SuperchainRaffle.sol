@@ -2,28 +2,21 @@
 pragma solidity ^0.8.19;
 
 import {ISuperchainRaffle} from "./interfaces/ISuperchainRaffle.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ISuperchainModule} from "./interfaces/ISuperchainModule.sol";
 import {IRandomizerWrapper} from "./interfaces/IRandomizerWrapper.sol";
 
-contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
-    address public beneficiary;
-    IERC20 public opToken;
-    string public uri;
-    uint256 public startTime;
-    address public superchainModule;
-    address public randomizerWrapper;
-    bool public mainnetRandomizedWrapper;
-    uint256 public protocolFee;
-    uint256 public constant BPS = 10_000;
-    uint256 public maxAmountTickets = 250;
-    RandomValueThreshold[] public randomValueThresholds; // Nueva variable de estado
-    mapping(uint256 => WinningLogic) private winningLogic;
-    mapping(uint256 => RaffleRound) public raffleRounds;
-    uint256[] public freeTicketsPerLevel;
-    uint256[] private winningLogicKeys;
+contract SuperchainRaffle is
+    Initializable,
+    ISuperchainRaffle,
+    PausableUpgradeable,
+    OwnableUpgradeable,
+    UUPSUpgradeable
+{
     struct RaffleRound {
         uint256 ticketsSold;
         RoundPrize roundPrizes;
@@ -32,26 +25,63 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         mapping(uint256 => address) ticketOwners;
         uint256[] winningNumbers;
     }
+    struct SuperChainRaffleStorage {
+        address beneficiary;
+        IERC20 opToken;
+        string uri;
+        uint256 startTime;
+        address superchainModule;
+        address randomizerWrapper;
+        bool mainnetRandomizedWrapper;
+        uint256 protocolFee;
+        uint256 maxAmountTickets;
+        RandomValueThreshold[] randomValueThresholds; // Nueva variable de estado
+        mapping(uint256 => WinningLogic) winningLogic;
+        mapping(uint256 => RaffleRound) raffleRounds;
+        uint256[] freeTicketsPerLevel;
+        uint256[] winningLogicKeys;
+    }
+    uint256 public constant BPS = 10_000;
 
-    constructor(
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.superchain_raffle")) - 1)) & ~bytes32(uint256(0xff));
+    bytes32 private constant SUPERCHAIN_RAFFLE_STORAGE_LOCATION =
+        0xe6e73cc6ab709186c31bbc8e40a3f00c92050f83301f9ffd3a431a89d588f300;
+
+    function superChainRaffleStorage()
+        private
+        pure
+        returns (SuperChainRaffleStorage storage $)
+    {
+        assembly {
+            $.slot := SUPERCHAIN_RAFFLE_STORAGE_LOCATION
+        }
+    }
+
+    function initialize(
         uint256[] memory _numberOfWinners,
         uint256[][] memory _payoutPercentage,
         address _beneficiary,
         address _opToken,
         address _superchainModule,
-        address _randomizerWrapper
-    ) Ownable(msg.sender) {
+        address _randomizerWrapper,
+        address owner
+    ) public initializer {
+        __Ownable_init(owner);
+        __UUPSUpgradeable_init();
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         _setWinningLogic(_numberOfWinners, _payoutPercentage);
         _setBeneficiary(_beneficiary);
-        opToken = IERC20(_opToken);
+        s.opToken = IERC20(_opToken);
+        s.maxAmountTickets = 250;
         _setProtocolFee(0);
         _setSuperchainModule(_superchainModule);
-        randomizerWrapper = _randomizerWrapper;
+        s.randomizerWrapper = _randomizerWrapper;
     }
 
     modifier onlySuperChainAccount(address user) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         if (
-            ISuperchainModule(superchainModule)
+            ISuperchainModule(s.superchainModule)
                 .getSuperChainAccount(msg.sender)
                 .smartAccount == address(0)
         ) {
@@ -61,7 +91,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     modifier onlyRandomizerWrapper() {
-        if (msg.sender != randomizerWrapper) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        if (msg.sender != s.randomizerWrapper) {
             revert SuperchainRaffle__OnlyRandomizerWrapper();
         }
         _;
@@ -74,15 +105,16 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function enterRaffle(
         uint256 _numberOfTickets
     ) external whenNotPaused onlySuperChainAccount(msg.sender) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 round = _roundsSinceStart();
-        RaffleRound storage currentRound = raffleRounds[round];
+        RaffleRound storage currentRound = s.raffleRounds[round];
         uint256 ticketsRemaining = freeTicketsRemaining(msg.sender);
 
         if (_numberOfTickets > ticketsRemaining) {
             revert SuperchainRaffle__NotEnoughFreeTickets();
         }
 
-        if (currentRound.ticketsSold + _numberOfTickets > maxAmountTickets)
+        if (currentRound.ticketsSold + _numberOfTickets > s.maxAmountTickets)
             revert SuperchainRaffle__MaxNumberOfTicketsReached();
 
         currentRound.ticketsPerWallet[msg.sender] += _numberOfTickets;
@@ -101,19 +133,20 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function freeTicketsRemaining(address user) public view returns (uint256) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 round = _roundsSinceStart();
-        RaffleRound storage currentRound = raffleRounds[round];
-        uint16 userLevel = ISuperchainModule(superchainModule)
+        RaffleRound storage currentRound = s.raffleRounds[round];
+        uint16 userLevel = ISuperchainModule(s.superchainModule)
             .getSuperChainAccount(user)
             .level;
         if (userLevel == 0) return 0;
         uint256 freeTicketsForLevel;
-        if (userLevel > freeTicketsPerLevel.length) {
-            freeTicketsForLevel = freeTicketsPerLevel[
-                freeTicketsPerLevel.length - 1
+        if (userLevel > s.freeTicketsPerLevel.length) {
+            freeTicketsForLevel = s.freeTicketsPerLevel[
+                s.freeTicketsPerLevel.length - 1
             ];
         } else {
-            freeTicketsForLevel = freeTicketsPerLevel[userLevel - 1];
+            freeTicketsForLevel = s.freeTicketsPerLevel[userLevel - 1];
         }
         uint256 ticketsBought = currentRound.ticketsPerWallet[user];
         return
@@ -138,11 +171,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function raffle() external whenNotPaused {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 currentRound = _roundsSinceStart() - 1;
         uint256 lastUnclaimedRound = 0;
 
         for (uint256 round = 0; round <= currentRound; round++) {
-            if (raffleRounds[round].winningNumbers.length == 0) {
+            if (s.raffleRounds[round].winningNumbers.length == 0) {
                 lastUnclaimedRound = round;
                 break;
             }
@@ -153,7 +187,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             round <= currentRound;
             round++
         ) {
-            RaffleRound storage currentRaffleRound = raffleRounds[round];
+            RaffleRound storage currentRaffleRound = s.raffleRounds[round];
             if (currentRaffleRound.winningNumbers.length != 0) continue;
 
             uint256 ticketsSold = currentRaffleRound.ticketsSold;
@@ -167,7 +201,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             if (ticketsSold == 0) {
                 uint256 nextRound = round + 1;
                 if (nextRound <= currentRound + 1) {
-                    RaffleRound storage nextRaffleRound = raffleRounds[
+                    RaffleRound storage nextRaffleRound = s.raffleRounds[
                         nextRound
                     ];
                     nextRaffleRound.roundPrizes.EthAmount += ethPrize;
@@ -191,7 +225,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
 
                 emit RoundWinners(round, ticketsSold, winners);
             } else {
-                IRandomizerWrapper(randomizerWrapper).requestRandomNumber(
+                IRandomizerWrapper(s.randomizerWrapper).requestRandomNumber(
                     address(this),
                     round
                 );
@@ -200,9 +234,10 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function canRaffle() external view returns (bool isRaffleable) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 round = _roundsSinceStart() - 1;
         for (round; round > 0; round--) {
-            if (raffleRounds[round].winningNumbers.length == 0) {
+            if (s.raffleRounds[round].winningNumbers.length == 0) {
                 isRaffleable = true;
                 return isRaffleable;
             }
@@ -213,11 +248,12 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 rounds,
         uint256 OpAmount
     ) external payable whenNotPaused {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 EthAmount = msg.value;
         _transferOP(address(this), OpAmount);
         uint256 _currentRound = _roundsSinceStart();
         for (uint256 i = _currentRound; i < _currentRound + rounds; i++) {
-            RaffleRound storage currentRound = raffleRounds[i];
+            RaffleRound storage currentRound = s.raffleRounds[i];
             currentRound.roundPrizes.EthAmount += (EthAmount / rounds);
             currentRound.roundPrizes.OpAmount += (OpAmount / rounds);
             emit RaffleFunded(i, EthAmount / rounds, OpAmount / rounds);
@@ -227,7 +263,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 ticketId,
         uint256 round
     ) public view returns (address) {
-        return raffleRounds[round].ticketOwners[ticketId];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.raffleRounds[round].ticketOwners[ticketId];
     }
 
     function setMaxAmountTicketsPerRound(
@@ -237,7 +274,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function setURI(string memory _uri) external onlyOwner {
-        uri = _uri;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.uri = _uri;
         emit URIChanged(_uri);
     }
 
@@ -252,7 +290,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function setStartTime(uint256 _timeStamp) external onlyOwner {
-        startTime = _timeStamp;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.startTime = _timeStamp;
         emit RaffleStarted(_timeStamp);
     }
 
@@ -272,13 +311,14 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _amountEth,
         uint256 _amountOp
     ) external onlyOwner {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         if (_amountEth > address(this).balance)
             revert SuperchainRaffle__NotEnoughEtherInContract();
-        (bool sent, ) = payable(beneficiary).call{value: _amountEth}("");
+        (bool sent, ) = payable(s.beneficiary).call{value: _amountEth}("");
         if (!sent) revert SuperchainRaffle__FailedToSentEther();
-        if (_amountOp > opToken.balanceOf(address(this)))
+        if (_amountOp > s.opToken.balanceOf(address(this)))
             revert SuperchainRaffle__NotEnoughOpInContract();
-        bool opSent = IERC20(opToken).transfer(beneficiary, _amountOp);
+        bool opSent = IERC20(s.opToken).transfer(s.beneficiary, _amountOp);
         if (!opSent) revert SuperchainRaffle__FailedToSentOp();
     }
 
@@ -292,19 +332,22 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         address user,
         uint256 round
     ) external view whenNotPaused returns (uint256) {
-        return raffleRounds[round].ticketsPerWallet[user];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.raffleRounds[round].ticketsPerWallet[user];
     }
 
     function getTicketsSoldPerRound(
         uint256 round
     ) external view whenNotPaused returns (uint256) {
-        return raffleRounds[round].ticketsSold;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.raffleRounds[round].ticketsSold;
     }
 
     function getWinningNumbers(
         uint256 round
     ) external view returns (uint256[] memory) {
-        return raffleRounds[round].winningNumbers;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.raffleRounds[round].winningNumbers;
     }
 
     function getWinningLogic()
@@ -312,27 +355,30 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         view
         returns (uint256[] memory, uint256[][] memory)
     {
-        uint256 length = winningLogicKeys.length;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        uint256 length = s.winningLogicKeys.length;
         uint256[] memory numberOfWinners = new uint256[](length);
         uint256[][] memory payoutPercentages = new uint256[][](length);
 
         for (uint256 i = 0; i < length; i++) {
-            uint256 key = winningLogicKeys[i];
+            uint256 key = s.winningLogicKeys[i];
             numberOfWinners[i] = key;
-            payoutPercentages[i] = winningLogic[key].payoutPercentage;
+            payoutPercentages[i] = s.winningLogic[key].payoutPercentage;
         }
 
         return (numberOfWinners, payoutPercentages);
     }
 
     function getFreeTicketsPerLevel() external view returns (uint256[] memory) {
-        return freeTicketsPerLevel;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.freeTicketsPerLevel;
     }
 
     function getRoundPrizes(
         uint256 _round
     ) external view returns (uint256 EthAmount, uint256 OpAmount) {
-        RaffleRound storage currentRound = raffleRounds[_round];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        RaffleRound storage currentRound = s.raffleRounds[_round];
         EthAmount = currentRound.roundPrizes.EthAmount;
         OpAmount = currentRound.roundPrizes.OpAmount;
     }
@@ -342,10 +388,11 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _startRound,
         uint256 _endRound
     ) external view returns (uint256 roundsPlayed) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         if (_endRound > roundsSinceStart() - 1)
             revert SuperchainRaffle__InvalidEndRound();
         for (_startRound; _startRound <= _endRound; _startRound++) {
-            if (raffleRounds[_startRound].ticketsPerWallet[_user] != 0)
+            if (s.raffleRounds[_startRound].ticketsPerWallet[_user] != 0)
                 roundsPlayed++;
         }
     }
@@ -365,16 +412,18 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function setFreeTicketsPerLevel(
         uint256[] memory _freeTicketsPerLevel
     ) external onlyOwner {
-        freeTicketsPerLevel = _freeTicketsPerLevel;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.freeTicketsPerLevel = _freeTicketsPerLevel;
         emit FreeTicketsPerLevelChanged(_freeTicketsPerLevel);
     }
 
     function _setRandomValueThresholds(
         RandomValueThreshold[] memory _randomValueThresholds
     ) internal {
-        delete randomValueThresholds; // Limpiar los umbrales existentes
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        delete s.randomValueThresholds; // Limpiar los umbrales existentes
         for (uint256 i = 0; i < _randomValueThresholds.length; i++) {
-            randomValueThresholds.push(_randomValueThresholds[i]);
+            s.randomValueThresholds.push(_randomValueThresholds[i]);
         }
     }
 
@@ -383,14 +432,15 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function _claimableAmounts(
         address user
     ) internal returns (uint256 amountETH, uint256 amountOP) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 round = (_roundsSinceStart() - 1);
         for (round; round > 0; round--) {
-            RaffleRound storage currentRound = raffleRounds[round];
+            RaffleRound storage currentRound = s.raffleRounds[round];
             if (currentRound.winningClaimed[user]) break;
             if (currentRound.winningNumbers.length != 0) {
                 uint256[] memory winningTickets = currentRound.winningNumbers;
                 uint256 nOfWinningTickets = winningTickets.length;
-                WinningLogic memory logic = winningLogic[nOfWinningTickets];
+                WinningLogic memory logic = s.winningLogic[nOfWinningTickets];
                 for (uint256 i; i < nOfWinningTickets; ++i) {
                     if (currentRound.ticketOwners[winningTickets[i]] == user) {
                         amountETH += _getETHAmount(
@@ -413,14 +463,16 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function _getClaimableAmounts(
         address user
     ) internal view returns (uint256 amountETH, uint256 amountOP) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         uint256 round = (_roundsSinceStart() - 1);
         for (round; round > 0; round--) {
-            if (raffleRounds[round].winningClaimed[user]) break;
-            if (raffleRounds[round].winningNumbers.length != 0) {
-                uint256[] memory winningTickets = raffleRounds[round]
+            if (s.raffleRounds[round].winningClaimed[user]) break;
+            if (s.raffleRounds[round].winningNumbers.length != 0) {
+                uint256[] memory winningTickets = s
+                    .raffleRounds[round]
                     .winningNumbers;
                 uint256 nOfWinningTickets = winningTickets.length;
-                WinningLogic memory logic = winningLogic[nOfWinningTickets];
+                WinningLogic memory logic = s.winningLogic[nOfWinningTickets];
                 for (uint256 i; i < nOfWinningTickets; ++i) {
                     if (
                         _getTicketBuyerAddress(winningTickets[i], round) == user
@@ -449,13 +501,14 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     }
 
     function _transferOP(address _to, uint256 _amountOP) internal {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         if (_to == address(this)) {
             require(
-                opToken.transferFrom(msg.sender, _to, _amountOP),
+                s.opToken.transferFrom(msg.sender, _to, _amountOP),
                 "OP transfer failed"
             );
         } else {
-            require(opToken.transfer(_to, _amountOP), "OP transfer failed");
+            require(s.opToken.transfer(_to, _amountOP), "OP transfer failed");
         }
     }
 
@@ -468,12 +521,13 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        RaffleRound storage currentRound = raffleRounds[_round];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        RaffleRound storage currentRound = s.raffleRounds[_round];
         uint256 totalEthCollected = currentRound.roundPrizes.EthAmount;
         if (totalEthCollected == 0) return 0;
-        uint256 protocolFeeAmount = protocolFee == 0
+        uint256 protocolFeeAmount = s.protocolFee == 0
             ? 0
-            : (totalEthCollected * protocolFee) / BPS;
+            : (totalEthCollected * s.protocolFee) / BPS;
         uint256 totalWinnableETHPrizeForRound = totalEthCollected -
             protocolFeeAmount;
         return ((totalWinnableETHPrizeForRound * _percentage) / BPS);
@@ -483,7 +537,8 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _percentage,
         uint256 _round
     ) internal view returns (uint256) {
-        RaffleRound storage currentRound = raffleRounds[_round];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        RaffleRound storage currentRound = s.raffleRounds[_round];
         uint256 totalOPCollected = currentRound.roundPrizes.OpAmount;
         if (totalOPCollected == 0) return 0;
         return ((totalOPCollected * _percentage) / BPS);
@@ -493,40 +548,47 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _ticketId,
         uint256 _round
     ) internal view returns (address) {
-        return raffleRounds[_round].ticketOwners[_ticketId];
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.raffleRounds[_round].ticketOwners[_ticketId];
     }
 
     function _roundsSinceStart() internal view returns (uint256) {
-        if (block.timestamp < startTime)
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        if (block.timestamp < s.startTime)
             revert SuperchainRaffle__SuperchainRaffleNotStartedYet();
-        return ((block.timestamp - startTime) / 1 weeks) + 1;
+        return ((block.timestamp - s.startTime) / 1 weeks) + 1;
     }
 
     function _setBeneficiary(address _beneficiary) internal {
-        beneficiary = _beneficiary;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.beneficiary = _beneficiary;
     }
 
     function _setSuperchainModule(address _newSuperchainModule) internal {
-        superchainModule = _newSuperchainModule;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.superchainModule = _newSuperchainModule;
     }
 
     function _setMaxAmountTicketsPerRound(uint256 _maxAmount) internal {
-        maxAmountTickets = _maxAmount;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.maxAmountTickets = _maxAmount;
     }
 
     function _setProtocolFee(uint256 _fee) internal {
-        protocolFee = _fee;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        s.protocolFee = _fee;
     }
 
     function _setWinningLogic(
         uint256[] memory _numberOfWinners,
         uint256[][] memory _payoutPercentage
     ) internal {
-        delete winningLogicKeys; // Clear the existing keys
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        delete s.winningLogicKeys; // Clear the existing keys
         uint256 arrayLength = _numberOfWinners.length;
         for (uint256 i; i < arrayLength; ++i) {
             uint256 key = _numberOfWinners[i];
-            WinningLogic storage logic = winningLogic[key];
+            WinningLogic storage logic = s.winningLogic[key];
             if (logic.payoutPercentage.length != 0) {
                 delete logic.payoutPercentage;
             }
@@ -534,7 +596,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
             for (uint256 j; j < innerArrayLength; ++j) {
                 logic.payoutPercentage.push(_payoutPercentage[i][j]);
             }
-            winningLogicKeys.push(key); // Add the key to the keys array
+            s.winningLogicKeys.push(key); // Add the key to the keys array
         }
     }
 
@@ -542,20 +604,20 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint256 _round,
         uint256 randomness
     ) external onlyRandomizerWrapper {
-        uint256 numberOfTicketsSold = raffleRounds[_round].ticketsSold;
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        uint256 numberOfTicketsSold = s.raffleRounds[_round].ticketsSold;
         uint256 numberOfRandomValues = _getNumberOfRandomValues(
             numberOfTicketsSold
         );
-        uint256 winningTicket;
         Winner[] memory winners = new Winner[](numberOfRandomValues);
-        uint256 totalEthPrize = raffleRounds[_round].roundPrizes.EthAmount;
-        uint256 totalOpPrize = raffleRounds[_round].roundPrizes.OpAmount;
+        uint256 totalEthPrize = s.raffleRounds[_round].roundPrizes.EthAmount;
+        uint256 totalOpPrize = s.raffleRounds[_round].roundPrizes.OpAmount;
         if (numberOfRandomValues == 1) {
-            winningTicket = _getTicketNumberFromRandomValue(
+            uint256 winningTicket = _getTicketNumberFromRandomValue(
                 randomness,
                 numberOfTicketsSold
             );
-            raffleRounds[_round].winningNumbers.push(winningTicket);
+            s.raffleRounds[_round].winningNumbers.push(winningTicket);
             address ticketOwner = getTicketOwner(winningTicket, _round);
             winners[0] = Winner(
                 winningTicket,
@@ -570,6 +632,7 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     _derivedRandomNumbers(randomness, i),
                     numberOfTicketsSold
                 );
+                uint256 winningTicket;
                 while (doubleValue) {
                     winningTicket = _getTicketNumberFromRandomValue(
                         _derivedRandomNumbers(randomness, value),
@@ -578,17 +641,17 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
                     doubleValue = _checkDoubleValue(
                         winningTicket,
                         _round,
-                        raffleRounds[_round].winningNumbers.length
+                        s.raffleRounds[_round].winningNumbers.length
                     );
                     value = (value + 1) % numberOfTicketsSold;
                 }
-                raffleRounds[_round].winningNumbers.push(winningTicket);
+                s.raffleRounds[_round].winningNumbers.push(winningTicket);
 
                 uint256 ethPrize = (totalEthPrize *
-                    winningLogic[numberOfRandomValues].payoutPercentage[i]) /
+                    s.winningLogic[numberOfRandomValues].payoutPercentage[i]) /
                     BPS;
                 uint256 opPrize = (totalOpPrize *
-                    winningLogic[numberOfRandomValues].payoutPercentage[i]) /
+                    s.winningLogic[numberOfRandomValues].payoutPercentage[i]) /
                     BPS;
                 address ticketOwner = getTicketOwner(winningTicket, _round);
 
@@ -607,8 +670,9 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
         uint _round,
         uint _arrayLength
     ) internal view returns (bool) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
         for (uint256 j = 0; j < _arrayLength; ++j) {
-            if (raffleRounds[_round].winningNumbers[j] == _winningTicket) {
+            if (s.raffleRounds[_round].winningNumbers[j] == _winningTicket) {
                 return true;
             }
         }
@@ -640,17 +704,88 @@ contract SuperchainRaffle is ISuperchainRaffle, Pausable, Ownable {
     function _getNumberOfRandomValues(
         uint256 _numberOfTicketsSold
     ) internal view returns (uint256) {
-        for (uint256 i = 0; i < randomValueThresholds.length; i++) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        for (uint256 i = 0; i < s.randomValueThresholds.length; i++) {
             if (
-                _numberOfTicketsSold <= randomValueThresholds[i].ticketThreshold
+                _numberOfTicketsSold <=
+                s.randomValueThresholds[i].ticketThreshold
             ) {
-                return randomValueThresholds[i].randomValues;
+                return s.randomValueThresholds[i].randomValues;
             }
         }
         return
-            randomValueThresholds[randomValueThresholds.length - 1]
+            s
+                .randomValueThresholds[s.randomValueThresholds.length - 1]
                 .randomValues; // Valor por defecto si no se cumple ningún umbral
     }
 
-    // Add this state variable to keep track of the keys
+    function beneficiary() external view returns (address) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.beneficiary;
+    }
+
+    function opToken() external view returns (IERC20) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.opToken;
+    }
+
+    // Getter para `uri`
+    function uri() external view returns (string memory) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.uri;
+    }
+
+    // Getter para `startTime`
+    function startTime() external view returns (uint256) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.startTime;
+    }
+
+    // Getter para `superchainModule`
+    function superchainModule() external view returns (address) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.superchainModule;
+    }
+
+    // Getter para `randomizerWrapper`
+    function randomizerWrapper() external view returns (address) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.randomizerWrapper;
+    }
+
+    // Getter para `mainnetRandomizedWrapper`
+    function mainnetRandomizedWrapper() external view returns (bool) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.mainnetRandomizedWrapper;
+    }
+
+    // Getter para `protocolFee`
+    function protocolFee() external view returns (uint256) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.protocolFee;
+    }
+
+    // Getter para `maxAmountTickets`
+    function maxAmountTickets() external view returns (uint256) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.maxAmountTickets;
+    }
+
+    // Getter para `randomValueThresholds`
+    function randomValueThresholds()
+        external
+        view
+        returns (RandomValueThreshold[] memory)
+    {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.randomValueThresholds;
+    }
+
+    // Getter para `freeTicketsPerLevel`
+    function freeTicketsPerLevel() external view returns (uint256[] memory) {
+        SuperChainRaffleStorage storage s = superChainRaffleStorage();
+        return s.freeTicketsPerLevel;
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
 }

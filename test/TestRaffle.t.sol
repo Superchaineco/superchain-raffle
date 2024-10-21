@@ -8,9 +8,13 @@ import {MockRandomizerWrapper} from "../src/Mocks.sol";
 import {MockSuperchainModule} from "../src/Mocks.sol";
 import {MockERC20} from "../src/Mocks.sol";
 import {ISuperchainRaffle} from "../src/interfaces/ISuperchainRaffle.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract TestRaffle is Test {
+    SuperchainRaffle raffleImplementation;
     SuperchainRaffle raffle;
+    ERC1967Proxy proxy;
+
     MockRandomizerWrapper mockRandomizerWrapper;
     MockSuperchainModule mockSuperchainModule;
     MockERC20 _opToken;
@@ -98,14 +102,20 @@ contract TestRaffle is Test {
         );
         mockSuperchainModule = new MockSuperchainModule();
         _opToken = new MockERC20();
-        raffle = new SuperchainRaffle(
+        raffleImplementation = new SuperchainRaffle();
+        bytes memory data = abi.encodeWithSelector(
+            raffleImplementation.initialize.selector,
             _numberOfWinners,
-            _payoutPercentage,
+            payoutPercentage,
             _beneficiary,
             address(_opToken),
             address(mockSuperchainModule),
-            address(mockRandomizerWrapper)
+            address(mockRandomizerWrapper),
+            address(this) // owner
         );
+        proxy = new ERC1967Proxy(address(raffleImplementation), data);
+        raffle = SuperchainRaffle(address(proxy));
+
         raffle.setRandomValueThresholds(_randomValueThresholds);
 
         raffle.setFreeTicketsPerLevel(_freeTicketsPerLevel);
@@ -672,11 +682,16 @@ contract TestRaffle is Test {
 
         raffle.raffle();
 
-        uint256[] memory winningNumbers = raffle.getWinningNumbers(raffle.roundsSinceStart() - 1);
+        uint256[] memory winningNumbers = raffle.getWinningNumbers(
+            raffle.roundsSinceStart() - 1
+        );
         console.log("winningNumbers", winningNumbers.length);
         console.log("roundsSinceStart", raffle.roundsSinceStart());
         console.log("block.number", block.number);
-        assertEq(winningNumbers.length, 0, "No se deberian haber generado numeros ganadores");
-
+        assertEq(
+            winningNumbers.length,
+            0,
+            "No se deberian haber generado numeros ganadores"
+        );
     }
 }
