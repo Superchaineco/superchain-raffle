@@ -45,7 +45,7 @@ type Unpaused @entity(immutable: true) {
 type Raffle @entity {
   id: Bytes! # address
   initTimestamp: BigInt! # uint256
-  uri: String! # string
+  uri: String # string
   rounds: [Round!]! @derivedFrom(field: "raffle")
 }
 
