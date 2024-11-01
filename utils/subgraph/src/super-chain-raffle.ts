@@ -103,6 +103,9 @@ export function handleRoundWinners(event: RoundWinnersEvent): void {
     let user = User.load(winner.user);
     if (user) {
       let winnerId = event.transaction.hash.toHex().concat(i.toString());
+      if (winnerId.length % 2 !== 0) {
+        winnerId = "0".concat(winnerId);
+      }
       let roundWinner = new RoundWinner(Bytes.fromHexString(winnerId));
       roundWinner.round = round.id;
       roundWinner.user = user.id;

@@ -35,7 +35,7 @@ contract SuperchainRaffle is
         bool mainnetRandomizedWrapper;
         uint256 protocolFee;
         uint256 maxAmountTickets;
-        RandomValueThreshold[] randomValueThresholds; 
+        RandomValueThreshold[] randomValueThresholds; // Nueva variable de estado
         mapping(uint256 => WinningLogic) winningLogic;
         mapping(uint256 => RaffleRound) raffleRounds;
         uint256[] freeTicketsPerLevel;
@@ -287,13 +287,6 @@ contract SuperchainRaffle is
         address _newSuperchainModule
     ) external onlyOwner {
         _setSuperchainModule(_newSuperchainModule);
-    }
-
-    function setRandomizerWrapper(
-        address _randomizerWrapper
-    ) external onlyOwner {
-        SuperChainRaffleStorage storage s = superChainRaffleStorage();
-        s.randomizerWrapper = _randomizerWrapper;
     }
 
     function setStartTime(uint256 _timeStamp) external onlyOwner {
@@ -714,13 +707,16 @@ contract SuperchainRaffle is
         SuperChainRaffleStorage storage s = superChainRaffleStorage();
         for (uint256 i = 0; i < s.randomValueThresholds.length; i++) {
             if (
-                _numberOfTicketsSold <= s.randomValueThresholds[i].ticketThreshold
+                _numberOfTicketsSold <=
+                s.randomValueThresholds[i].ticketThreshold
             ) {
                 return s.randomValueThresholds[i].randomValues;
             }
         }
         return
-            s.randomValueThresholds[s.randomValueThresholds.length - 1].randomValues;
+            s
+                .randomValueThresholds[s.randomValueThresholds.length - 1]
+                .randomValues; // Valor por defecto si no se cumple ningún umbral
     }
 
     function beneficiary() external view returns (address) {
