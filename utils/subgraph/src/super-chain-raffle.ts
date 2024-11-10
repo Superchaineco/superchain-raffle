@@ -134,6 +134,7 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
     round.prizeOp = new BigInt(0);
     round.prizeEth = new BigInt(0);
   }
+  let startingTicketNumber = round.ticketsSold;
   round.ticketsSold = round.ticketsSold.plus(
     event.params.numberOfTickets,
   );
@@ -161,10 +162,9 @@ export function handleTicketsPurchased(event: TicketsPurchasedEvent): void {
       event.params.numberOfTickets,
     );
   }
-  let startingTicketNumber = event.params.ticketsSold;
   for (let i = 0; i < event.params.numberOfTickets.toI32(); i++) {
     let tickets = userRoundTickets.ticketNumbers;
-    tickets.push(startingTicketNumber.plus(BigInt.fromI32(i)));
+    tickets.push(startingTicketNumber.plus(BigInt.fromI32(i + 1)));
     userRoundTickets.ticketNumbers = tickets;
   }
 
