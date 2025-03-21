@@ -157,14 +157,15 @@ contract SuperchainRaffle is
 
     function claimFor(address user) external whenNotPaused {
         (uint256 amountETH, uint256 amountOP) = _claimableAmounts(user);
-        if (amountETH > 0) {
-            _transferWinnings(msg.sender, amountOP, amountETH);
+        if (amountETH > 0 || amountOP > 0) {
+            _transferWinnings(user, amountOP, amountETH);
         }
+        emit Claim(user, amountETH, amountOP);
     }
 
     function claim() external whenNotPaused {
         (uint256 amountETH, uint256 amountOP) = _claimableAmounts(msg.sender);
-        if (amountETH > 0) {
+        if (amountETH > 0 || amountOP > 0) {
             _transferWinnings(msg.sender, amountOP, amountETH);
         }
         emit Claim(msg.sender, amountETH, amountOP);
